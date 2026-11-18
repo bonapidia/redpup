@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RedPup</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--red:#e63946;--dark:#9d1c27;--cream:#fff4e6;--ink:#2b1b1d;--gold:#ffb703;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Fredoka',sans-serif;background:linear-gradient(160deg,#ff5d6c,#c1121f);min-height:100vh;color:var(--ink)}
+  header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(0,0,0,.18)}
+  .logo{font-size:32px;font-weight:700;color:#fff;cursor:pointer;display:flex;align-items:center;gap:8px;text-shadow:0 3px 0 var(--dark)}
+  .tokens{background:#fff;padding:8px 16px;border-radius:999px;font-weight:700;box-shadow:0 4px 0 var(--dark)}
+  nav{display:flex;gap:8px;flex-wrap:wrap}
+  nav button,.btn{font-family:inherit;font-size:17px;font-weight:600;border:none;border-radius:12px;padding:10px 18px;cursor:pointer;background:#fff;color:var(--red);box-shadow:0 4px 0 var(--dark);transition:transform .1s}
+  nav button:active,.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--dark)}
+  .btn.big{font-size:24px;padding:16px 32px}
+  .btn.red{background:var(--red);color:#fff;box-shadow:0 4px 0 #6d0f17}
+  main{max-width:1000px;margin:24px auto;padding:0 16px}
+  .card{background:var(--cream);border-radius:20px;padding:24px;box-shadow:0 8px 0 rgba(0,0,0,.2)}
+  h1{font-size:40px;margin-bottom:8px}h2{margin-bottom:14px}
+  .hero{text-align:center;color:#fff;padding:40px 0}
+  .hero h1{font-size:64px;text-shadow:0 5px 0 var(--dark)}
+  .hero p{font-size:22px;margin-bottom:24px}
+  .row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px}
+  .rook{background:#fff;border-radius:16px;padding:10px;text-align:center;cursor:pointer;border:3px solid transparent;position:relative}
+  .rook.locked svg{filter:brightness(0) opacity(.25)}
+  .rook.equipped{border-color:var(--gold)}
+  .rook .name{font-weight:600;font-size:15px}
+  .rook .count{position:absolute;top:6px;right:8px;background:var(--red);color:#fff;border-radius:999px;padding:0 8px;font-size:13px}
+  .rar{font-size:12px;font-weight:700;text-transform:uppercase}
+  .Common{color:#6c757d}.Uncommon{color:#2a9d8f}.Rare{color:#1d4ed8}.Epic{color:#9b5de5}.Legendary{color:#f77f00}.Chroma{background:linear-gradient(90deg,#f00,#f90,#0c0,#09f,#c0f);-webkit-background-clip:text;color:transparent}
+  .boxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+  .box{border-radius:18px;padding:20px;text-align:center;color:#fff;box-shadow:0 6px 0 rgba(0,0,0,.25)}
+  .box .ic{font-size:64px}
+  .answers{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+  .ans{font-family:inherit;font-size:20px;font-weight:600;color:#fff;border:none;border-radius:14px;padding:22px 12px;cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.3)}
+  .ans:nth-child(1){background:#ffb703}.ans:nth-child(2){background:#219ebc}.ans:nth-child(3){background:#2a9d8f}.ans:nth-child(4){background:#e76f51}
+  .q{font-size:28px;font-weight:600;text-align:center;background:#fff;border-radius:14px;padding:26px}
+  .hud{display:flex;justify-content:space-between;align-items:center;color:#fff;font-size:22px;font-weight:700;margin-bottom:12px}
+  .hud .me{display:flex;align-items:center;gap:8px}
+  .chests{display:flex;gap:16px;justify-content:center;margin-top:20px}
+  .chest{font-size:80px;cursor:pointer;background:#fff;border-radius:18px;padding:16px 26px;box-shadow:0 6px 0 var(--dark);transition:transform .15s}
+  .chest:hover{transform:scale(1.08) rotate(-3deg)}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9}
+  .modal .card{text-align:center;max-width:380px;animation:pop .4s}
+  @keyframes pop{0%{transform:scale(.3)}70%{transform:scale(1.1)}100%{transform:scale(1)}}
+  @keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-12deg)}75%{transform:rotate(12deg)}}
+  .shake{animation:shake .25s 4}
+  .set{background:#fff;border-radius:14px;padding:16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  input,textarea,select{font-family:inherit;font-size:16px;padding:10px;border-radius:10px;border:2px solid #ddd;width:100%}
+  .qedit{background:#fff;border-radius:12px;padding:12px;margin-bottom:10px;display:grid;gap:6px}
+  .qedit .opts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .feedback{font-size:40px;font-weight:700;text-align:center;color:#fff;margin:20px 0;text-shadow:0 3px 0 var(--dark)}
+  .muted{color:#7a6a6c}
+  .board{display:grid;gap:8px;margin:14px 0}
+  .board div{background:#fff;border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;font-weight:600}
+  @media(max-width:600px){.answers{grid-template-columns:1fr}.hero h1{font-size:44px}header{flex-direction:column;gap:10px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo" onclick="go('home')">🐶 RedPup</div>
+  <nav>
+    <button onclick="go('play')">Play</button>
+    <button onclick="go('market')">Market</button>
+    <button onclick="go('rooks')">Rooks</button>
+    <button onclick="go('create')">Create</button>
+  </nav>
+  <div class="tokens">🪙 <span id="tok">0</span></div>
+</header>
+<main id="app"></main>
+<div id="modal"></div>
+
+<script>
+// ---------- ROOKS ----------
+// Each Rook: [name, rarity, body color, accent color, accessory emoji, box]
+const ROOKS = [
+  ["Pebble","Common","#9ca3af","#6b7280","","Castle"],
+  ["Brick","Common","#c2410c","#7c2d12","","Castle"],
+  ["Mossy","Common","#65a30d","#3f6212","🌿","Castle"],
+  ["Sir Turret","Uncommon","#94a3b8","#475569","🛡️","Castle"],
+  ["Flagbearer","Rare","#e5e7eb","#9ca3af","🚩","Castle"],
+  ["Royal Rook","Epic","#a855f7","#6b21a8","👑","Castle"],
+  ["Dragonkeep","Legendary","#16a34a","#14532d","🐉","Castle"],
+  ["Coral","Common","#fb7185","#be123c","","Ocean"],
+  ["Barnacle","Common","#0ea5e9","#075985","🐚","Ocean"],
+  ["Lighthouse","Uncommon","#f8fafc","#dc2626","💡","Ocean"],
+  ["Captain Rook","Rare","#1e3a8a","#facc15","⚓","Ocean"],
+  ["Sunken Tower","Epic","#0f766e","#134e4a","🫧","Ocean"],
+  ["Kraken Keep","Legendary","#7c3aed","#2e1065","🐙","Ocean"],
+  ["Comet","Common","#fde047","#ca8a04","☄️","Space"],
+  ["Moonrock","Common","#d4d4d8","#71717a","🌙","Space"],
+  ["Astro Rook","Uncommon","#ffffff","#3b82f6","🚀","Space"],
+  ["Nebula","Rare","#ec4899","#6d28d9","✨","Space"],
+  ["Ringed Rook","Epic","#f59e0b","#92400e","🪐","Space"],
+  ["Galaxy Keep","Legendary","#1e1b4b","#a78bfa","🌌","Space"],
+  ["Rainbow Rook","Chroma","rainbow","#ffffff","🌈","Any"],
+];
+const RARITY_ODDS = {Common:55,Uncommon:25,Rare:13,Epic:5.5,Legendary:1.4,Chroma:0.1};
+const SELL = {Common:5,Uncommon:15,Rare:40,Epic:150,Legendary:500,Chroma:2000};
+const BOXES = [
+  {name:"Castle",price:25,color:"#b45309",ic:"🏰"},
+  {name:"Ocean",price:30,color:"#0369a1",ic:"🌊"},
+  {name:"Space",price:40,color:"#4c1d95",ic:"🌠"},
+];
+
+let uid=0;
+function rookSVG(i,size=90){
+  const [name,rar,body,acc,emo]=ROOKS[i];
+  const id="g"+(uid++);
+  const fill = body==="rainbow" ? `url(#${id})` : body;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff4d6d"/><stop offset=".35" stop-color="#ffd166"/>
+      <stop offset=".65" stop-color="#06d6a0"/><stop offset="1" stop-color="#4361ee"/></linearGradient></defs>
+    <ellipse cx="50" cy="93" rx="30" ry="5" fill="rgba(0,0,0,.15)"/>
+    <path d="M22 18h12v8h8v-8h16v8h8v-8h12v22l-6 6v30h8v12H20V76h8V46l-6-6z" fill="${fill}" stroke="${acc}" stroke-width="3" stroke-linejoin="round"/>
+    <rect x="20" y="40" width="60" height="5" fill="${acc}" opacity=".5"/>
+    <circle cx="40" cy="58" r="6" fill="#fff"/><circle cx="60" cy="58" r="6" fill="#fff"/>
+    <circle cx="41" cy="59" r="3.3" fill="#1f1f1f"/><circle cx="61" cy="59" r="3.3" fill="#1f1f1f"/>
+    <circle cx="42" cy="57.5" r="1.1" fill="#fff"/><circle cx="62" cy="57.5" r="1.1" fill="#fff"/>
+    <path d="M43 68q7 6 14 0" stroke="#1f1f1f" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <circle cx="33" cy="66" r="3.5" fill="#ff8fa3" opacity=".6"/><circle cx="67" cy="66" r="3.5" fill="#ff8fa3" opacity=".6"/>
+    ${emo?`<text x="74" y="30" font-size="24" text-anchor="middle">${emo}</text>`:""}
+  </svg>`;
+}
+
+// ---------- SAVE DATA ----------
+let S = {tokens:100, owned:{}, equipped:0, sets:[]};
+try{ const d=JSON.parse(localStorage.getItem("redpup")); if(d) S=Object.assign(S,d);}catch(e){}
+if(!S.owned[0]) S.owned[0]=1; // everyone starts with Pebble
+function save(){ try{localStorage.setItem("redpup",JSON.stringify(S));}catch(e){} document.getElementById("tok").textContent=S.tokens; }
+
+// ---------- QUESTION SETS ----------
+const BUILTIN = [
+  {title:"Quick Math",emoji:"➗",qs:[
+    ["7 × 8 = ?",["56","54","64","48"]],["12 + 29 = ?",["41","39","42","31"]],["81 ÷ 9 = ?",["9","8","7","11"]],
+    ["15 × 4 = ?",["60","45","50","64"]],["100 − 37 = ?",["63","73","67","57"]],["Square root of 144?",["12","14","11","16"]],
+    ["3³ = ?",["27","9","18","81"]],["25% of 80?",["20","25","40","16"]],["0.5 + 0.25 = ?",["0.75","0.30","0.55","1.0"]],
+    ["6 × 7 = ?",["42","36","48","49"]]]},
+  {title:"Science",emoji:"🔬",qs:[
+    ["What planet is called the Red Planet?",["Mars","Venus","Jupiter","Mercury"]],["What gas do plants take in?",["Carbon dioxide","Oxygen","Nitrogen","Helium"]],
+    ["H₂O is…",["Water","Salt","Hydrogen","Oxygen"]],["The center of an atom is the…",["Nucleus","Electron","Proton shell","Cell"]],
+    ["Fastest land animal?",["Cheetah","Lion","Horse","Pronghorn"]],["What force pulls things down?",["Gravity","Magnetism","Friction","Inertia"]],
+    ["Largest organ of the human body?",["Skin","Liver","Heart","Lungs"]],["Water boils at ___ °C",["100","90","120","212"]],
+    ["What do bees make?",["Honey","Silk","Wax only","Milk"]],["Closest star to Earth?",["The Sun","Polaris","Sirius","Alpha Centauri"]]]},
+  {title:"Geography",emoji:"🌎",qs:[
+    ["Capital of France?",["Paris","Lyon","Rome","Madrid"]],["Largest ocean?",["Pacific","Atlantic","Indian","Arctic"]],
+    ["Capital of Texas?",["Austin","Houston","Dallas","San Antonio"]],["Longest river in Africa?",["Nile","Congo","Niger","Zambezi"]],
+    ["Which continent is Brazil in?",["South America","Africa","North America","Europe"]],["Capital of Japan?",["Tokyo","Kyoto","Osaka","Seoul"]],
+    ["Tallest mountain on Earth?",["Mount Everest","K2","Kilimanjaro","Denali"]],["How many continents?",["7","5","6","8"]],
+    ["Largest country by area?",["Russia","Canada","China","USA"]],["Sahara is a…",["Desert","Forest","Ocean","Mountain"]]]},
+];
+function allSets(){ return BUILTIN.concat(S.sets); }
+
+// ---------- ROUTER ----------
+const app=document.getElementById("app");
+function go(p,arg){ closeModal(); ({home,play,market,rooks,create})[p](arg); window.scrollTo(0,0); }
+
+function home(){
+  app.innerHTML=`<div class="hero">
+    <div>${rookSVG(S.equipped,160)}</div>
+    <h1>RedPup</h1>
+    <p>Answer questions. Earn tokens. Collect every Rook.</p>
+    <div class="row">
+      <button class="btn big" onclick="go('play')">▶ Play</button>
+      <button class="btn big" onclick="go('market')">🛒 Market</button>
+      <button class="btn big" onclick="go('rooks')">🏰 My Rooks</button>
+    </div>
+    <p style="margin-top:24px;font-size:18px">Rooks collected: ${Object.keys(S.owned).length} / ${ROOKS.length}</p>
+  </div>`;
+}
+
+// ---------- PLAY ----------
+function play(){
+  app.innerHTML=`<div class="card"><h1>Pick a Set</h1><p class="muted" style="margin-bottom:14px">Mode: <b>Pup Quest</b> — answer right to open a chest. Most gold wins tokens!</p>
+  ${allSets().map((s,i)=>`<div class="set"><div><b style="font-size:20px">${s.emoji||"📘"} ${esc(s.title)}</b><div class="muted">${s.qs.length} questions</div></div>
+  <button class="btn red" onclick="startGame(${i})">Play</button></div>`).join("")}
+  <p class="muted">Make your own sets on the <a href="#" onclick="go('create');return false">Create</a> page.</p></div>`;
+}
+
+let G=null;
+function startGame(i){
+  const set=allSets()[i];
+  // 3 bot opponents for fun
+  const bots=["Biscuit","Rusty","Maple"].map(n=>({name:n,gold:0,rook:Math.floor(Math.random()*ROOKS.length)}));
+  G={set,order:shuffle([...set.qs.keys()]),qi:0,gold:0,correct:0,bots};
+  nextQ();
+}
+function nextQ(){
+  if(G.qi>=G.order.length) return endGame();
+  const [q,opts]=G.set.qs[G.order[G.qi]];
+  const shuffled=shuffle(opts.map((o,k)=>({o,right:k===0})));
+  G.cur=shuffled;
+  app.innerHTML=hud()+`<div class="q">${esc(q)}</div>
+  <div class="answers">${shuffled.map((a,k)=>`<button class="ans" onclick="answer(${k})">${esc(a.o)}</button>`).join("")}</div>`;
+}
+function hud(){
+  return `<div class="hud"><div class="me">${rookSVG(S.equipped,50)} You</div>
+    <div>Q ${G.qi+1}/${G.order.length}</div><div>💰 ${G.gold}</div></div>`;
+}
+function botsMove(){ G.bots.forEach(b=>{ if(Math.random()<.65) b.gold+=Math.floor(Math.random()*40)+5; }); }
+function answer(k){
+  botsMove();
+  G.qi++;
+  if(G.cur[k].right){
+    G.correct++;
+    app.innerHTML=hud()+`<div class="feedback">✅ Correct! Pick a chest</div>
+      <div class="chests">${[0,1,2].map(c=>`<div class="chest" onclick="openChest()">🎁</div>`).join("")}</div>`;
+  } else {
+    const right=G.cur.find(a=>a.right).o;
+    app.innerHTML=hud()+`<div class="feedback">❌ Nope!</div><div class="q">Answer: ${esc(right)}</div>
+      <div class="row" style="margin-top:16px"><button class="btn big" onclick="nextQ()">Next ▶</button></div>`;
+  }
+}
+function openChest(){
+  const r=Math.random(); let msg;
+  if(r<.45){ const n=[10,15,20,25,30][Math.floor(Math.random()*5)]; G.gold+=n; msg=`+${n} gold!`; }
+  else if(r<.6){ G.gold*=2; msg="DOUBLE gold! ✖️2"; }
+  else if(r<.7){ G.gold=Math.floor(G.gold*1.5)+5; msg="Gold Rush! +50%"; }
+  else if(r<.82){ const lost=Math.floor(G.gold*.25); G.gold-=lost; msg=`Oh no! Lost ${lost} gold`; }
+  else if(r<.92){ const b=G.bots.sort((a,b)=>b.gold-a.gold)[0]; const take=Math.floor(b.gold*.2); b.gold-=take; G.gold+=take; msg=`Stole ${take} from ${b.name}! 😈`; }
+  else { msg="Nothing… 🦴"; }
+  showModal(`<h2>${msg}</h2><p style="font-size:22px;margin:10px 0">💰 ${G.gold}</p><button class="btn red" onclick="closeModal();nextQ()">Next ▶</button>`);
+}
+function endGame(){
+  const all=[{name:"You",gold:G.gold,rook:S.equipped,me:1},...G.bots].sort((a,b)=>b.gold-a.gold);
+  const place=all.findIndex(p=>p.me)+1;
+  const earned=G.correct*3+[0,25,15,8,0][place];
+  S.tokens+=earned; save();
+  app.innerHTML=`<div class="card" style="text-align:center"><h1>${place===1?"🏆 You Win!":"Game Over"}</h1>
+    <p>You got ${G.correct}/${G.order.length} right and placed #${place}</p>
+    <div class="board">${all.map((p,i)=>`<div><span>#${i+1} ${rookSVG(p.rook,36)} ${p.name}</span><span>💰 ${p.gold}</span></div>`).join("")}</div>
+    <h2>+${earned} 🪙 tokens</h2>
+    <div class="row"><button class="btn red big" onclick="go('play')">Play Again</button><button class="btn big" onclick="go('market')">Market</button></div></div>`;
+}
+
+// ---------- MARKET ----------
+function market(){
+  app.innerHTML=`<div class="card"><h1>Market</h1><p class="muted" style="margin-bottom:14px">Spend tokens on boxes to unlock Rooks. Each box has its own Rooks — and any box can drop the ultra-rare Chroma!</p>
+  <div class="boxes">${BOXES.map((b,i)=>`<div class="box" style="background:${b.color}">
+    <div class="ic">${b.ic}</div><h2>${b.name} Box</h2>
+    <div style="display:flex;justify-content:center;gap:2px;margin-bottom:10px">${ROOKS.map((r,k)=>r[5]===b.name?rookSVG(k,32):"").join("")}</div>
+    <button class="btn" onclick="buy(${i})">🪙 ${b.price}</button></div>`).join("")}</div>
+  <h2 style="margin-top:22px">Odds</h2><p class="muted">${Object.entries(RARITY_ODDS).map(([k,v])=>`<span class="rar ${k}">${k}</span> ${v}%`).join(" · ")}</p></div>`;
+}
+function buy(i){
+  const b=BOXES[i];
+  if(S.tokens<b.price) return showModal(`<h2>Not enough tokens 😢</h2><p>Play games to earn more!</p><br><button class="btn red" onclick="go('play')">Play</button>`);
+  S.tokens-=b.price;
+  // roll rarity
+  let roll=Math.random()*100, rar="Common";
+  for(const [k,v] of Object.entries(RARITY_ODDS)){ if(roll<v){rar=k;break;} roll-=v; }
+  let pool=ROOKS.map((r,k)=>k).filter(k=>ROOKS[k][1]===rar&&(ROOKS[k][5]===b.name||ROOKS[k][5]==="Any"));
+  if(!pool.length) pool=ROOKS.map((r,k)=>k).filter(k=>ROOKS[k][5]===b.name&&ROOKS[k][1]==="Common");
+  const got=pool[Math.floor(Math.random()*pool.length)];
+  const isNew=!S.owned[got];
+  S.owned[got]=(S.owned[got]||0)+1; save();
+  showModal(`<div class="shake" style="font-size:90px">${b.ic}</div>`);
+  setTimeout(()=>showModal(`${rookSVG(got,150)}<h2>${ROOKS[got][0]}</h2>
+    <div class="rar ${rar}" style="font-size:18px">${rar}</div>
+    <p style="margin:8px 0">${isNew?"🎉 NEW ROOK!":"You have "+S.owned[got]}</p>
+    <div class="row"><button class="btn red" onclick="buy(${i})">Open another (🪙${b.price})</button><button class="btn" onclick="closeModal();market()">Done</button></div>`),1100);
+}
+
+// ---------- ROOKS (collection) ----------
+function rooks(){
+  app.innerHTML=`<div class="card"><h1>My Rooks</h1><p class="muted" style="margin-bottom:14px">${Object.keys(S.owned).length} / ${ROOKS.length} collected. Tap a Rook to equip it or sell extras.</p>
+  <div class="grid">${ROOKS.map((r,k)=>{const n=S.owned[k]||0;
+    return `<div class="rook ${n?"":"locked"} ${S.equipped==k?"equipped":""}" onclick="${n?`rookInfo(${k})`:""}">
+      ${n>1?`<span class="count">×${n}</span>`:""}${rookSVG(k,90)}
+      <div class="name">${n?r[0]:"???"}</div><div class="rar ${r[1]}">${r[1]}</div></div>`}).join("")}</div></div>`;
+}
+function rookInfo(k){
+  const [name,rar]=ROOKS[k], n=S.owned[k];
+  showModal(`${rookSVG(k,140)}<h2>${name}</h2><div class="rar ${rar}">${rar}</div><p class="muted">From the ${ROOKS[k][5]==="Any"?"any":ROOKS[k][5]} box · You own ${n}</p><br>
+  <div class="row"><button class="btn red" onclick="S.equipped=${k};save();rooks();closeModal()">${S.equipped==k?"Equipped ✓":"Equip"}</button>
+  ${n>1?`<button class="btn" onclick="sell(${k})">Sell 1 (+🪙${SELL[rar]})</button>`:""}
+  <button class="btn" onclick="closeModal()">Close</button></div>`);
+}
+function sell(k){ S.owned[k]--; S.tokens+=SELL[ROOKS[k][1]]; save(); rooks(); rookInfo(k); }
+
+// ---------- CREATE ----------
+let draft=null;
+function create(){
+  draft=draft||{title:"",emoji:"📘",qs:[["",["","","",""]]]};
+  app.innerHTML=`<div class="card"><h1>Create a Set</h1>
+  <div style="display:grid;grid-template-columns:80px 1fr;gap:8px;margin-bottom:12px">
+    <input value="${esc(draft.emoji)}" oninput="draft.emoji=this.value" maxlength="2">
+    <input placeholder="Set title" value="${esc(draft.title)}" oninput="draft.title=this.value"></div>
+  ${draft.qs.map((q,i)=>`<div class="qedit"><b>Question ${i+1}</b>
+    <input placeholder="Question" value="${esc(q[0])}" oninput="draft.qs[${i}][0]=this.value">
+    <div class="opts">${q[1].map((o,j)=>`<input placeholder="${j?"Wrong answer":"✅ Correct answer"}" value="${esc(o)}" style="${j?"":"border-color:#2a9d8f"}" oninput="draft.qs[${i}][1][${j}]=this.value">`).join("")}</div>
+    ${draft.qs.length>1?`<button class="btn" style="justify-self:start" onclick="draft.qs.splice(${i},1);create()">Remove</button>`:""}</div>`).join("")}
+  <div class="row" style="justify-content:flex-start"><button class="btn" onclick="draft.qs.push(['',['','','','']]);create()">+ Add Question</button>
+  <button class="btn red" onclick="saveSet()">💾 Save Set</button></div>
+  ${S.sets.length?`<h2 style="margin-top:22px">Your Sets</h2>${S.sets.map((s,i)=>`<div class="set"><b>${esc(s.emoji)} ${esc(s.title)} <span class="muted">(${s.qs.length})</span></b>
+    <div class="row"><button class="btn red" onclick="startGame(${BUILTIN.length+i})">Play</button><button class="btn" onclick="S.sets.splice(${i},1);save();create()">Delete</button></div></div>`).join("")}`:""}
+  </div>`;
+}
+function saveSet(){
+  const qs=draft.qs.filter(q=>q[0].trim()&&q[1].every(o=>o.trim()));
+  if(!draft.title.trim()||!qs.length) return showModal(`<h2>Almost!</h2><p>Add a title and at least one question with all 4 answers filled in.</p><br><button class="btn red" onclick="closeModal()">OK</button>`);
+  S.sets.push({title:draft.title,emoji:draft.emoji||"📘",qs}); draft=null; save(); create();
+}
+
+// ---------- HELPERS ----------
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function showModal(h){ document.getElementById("modal").innerHTML=`<div class="modal"><div class="card">${h}</div></div>`; }
+function closeModal(){ document.getElementById("modal").innerHTML=""; }
+
+save(); home();
+</script>
+</body>
+</html>
