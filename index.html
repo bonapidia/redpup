@@ -475,7 +475,14 @@ function fbErr(e){ const c=(e&&e.code)||"";
   if(c.includes("weak-password")) return "Password needs 6+ characters.";
   if(c.includes("too-many-requests")) return "Too many tries. Wait a minute and try again.";
   if(c.includes("network")) return "No internet connection.";
-  return "Something went wrong. Try again."; }
+  const m=String((e&&e.message)||"");
+  if(c.includes("operation-not-allowed")) return "Firebase setup: turn on Email/Password in Authentication → Sign-in method.";
+  if(c.includes("configuration-not-found")) return "Firebase setup: open Authentication and click Get started, then turn on Email/Password.";
+  if(c.includes("api-key")) return "Firebase setup: the apiKey in index.html is wrong.";
+  if(c.includes("permission-denied")) return "Firebase setup: paste firestore.rules into Firestore → Rules and click Publish.";
+  if(m.includes("does not exist")||c.includes("not-found")) return "Firebase setup: create the Firestore Database (Build → Firestore Database → Create database).";
+  if(c.includes("unavailable")||m.includes("offline")) return "Can't reach Firebase — the Firestore Database may not be created yet, or this network blocks it.";
+  return "Something went wrong ("+(c||m||"unknown")+")."; }
 async function doLogin(){
   const n=l_name.value.trim(), p=l_pw.value; if(!n||!p) return l_err.textContent="Enter your username and password.";
   l_go.disabled=true; l_err.textContent="";
