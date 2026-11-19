@@ -218,13 +218,16 @@ if (window.FB) {
     const email = n => n.toLowerCase() + "@redpup.game";
     const userDoc = uid => F.doc(db, "users", uid);
     window.FB = {
-      onAuth: cb => A.onAuthStateChanged(auth, u => cb(u ? { uid: u.uid } : null)),
+      onAuth: cb => A.onAuthStateChanged(auth, u => cb(u ? { uid: u.uid, emailName: (u.email || "").split("@")[0] } : null)),
       async signUp(name, pw) {
-        const key = name.toLowerCase();
-        if ((await F.getDoc(F.doc(db, "usernames", key))).exists()) throw { code: "taken" };
+        // Firebase Auth already blocks duplicate usernames (same email), so no pre-check needed
         const cred = await A.createUserWithEmailAndPassword(auth, email(name), pw);
-        await F.setDoc(F.doc(db, "usernames", key), { uid: cred.user.uid, name });
+        await F.setDoc(F.doc(db, "usernames", name.toLowerCase()), { uid: cred.user.uid, name });
         return cred.user.uid;
+      },
+      async ensureUsername(uid, name) {
+        const ref = F.doc(db, "usernames", name.toLowerCase());
+        if (!(await F.getDoc(ref)).exists()) await F.setDoc(ref, { uid, name });
       },
       signIn: (name, pw) => A.signInWithEmailAndPassword(auth, email(name), pw),
       signOut: () => A.signOut(auth),
@@ -441,7 +444,10 @@ function boot(){ if(booted) return; booted=true;
     FB.onAuth(async u=>{
       if(SIGNING_UP) return;
       if(u){ UID=u.uid; let d=null; try{d=await FB.getUser(UID);}catch(e){}
-        MODE="fb"; S=normalize(d); afterLogin(); settleTrades(true); }
+        MODE="fb"; S=normalize(d); if(!S.name) S.name=u.emailName||"Player";
+        if(!d) FB.saveUser(UID,S).catch(()=>{});
+        FB.ensureUsername(UID,S.name).catch(()=>{});
+        afterLogin(); settleTrades(true); }
       else if(MODE!=="guest"){ wantGuest()?startGuest():loginScreen(); }
     });
   } else { wantGuest()?startGuest():loginScreen(); }
