@@ -619,6 +619,8 @@ function chooseMode(i){
 let G=null, qTimer=null, gTimer=null;
 function stopTimers(){ clearInterval(qTimer); clearInterval(gTimer); qTimer=gTimer=null; }
 const rand=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+// Tokens = questions right × questions in the set (e.g. 2 right in a 5-question set = 10)
+const reward=(correct,set)=>correct*((set&&set.qs&&set.qs.length)||0);
 function startGame(i,mode){
   closeModal(); stopTimers();
   const set=allSets()[i];
@@ -716,7 +718,7 @@ function speedNext(){
 }
 function speedEnd(){
   stopTimers(); G.locked=true;
-  const earned=G.correct*2+G.best;
+  const earned=reward(G.correct,G.set);
   S.tokens+=earned; save(); if(G.correct>=10) confetti();
   app.innerHTML=`<div class="card fade" style="text-align:center"><h1>⏱️ Time!</h1>
     <div class="bob">${rookSVG(S.equipped,110)}</div>
@@ -727,7 +729,7 @@ function speedEnd(){
 function finish(key,unit){
   stopTimers();
   const all=[{name:NAME(),[key]:G[key],rook:S.equipped,me:1},...G.bots].sort((a,b)=>b[key]-a[key]);
-  const place=all.findIndex(p=>p.me)+1, earned=G.correct*3+[0,25,15,8,0][place];
+  const place=all.findIndex(p=>p.me)+1, earned=reward(G.correct,G.set);
   S.tokens+=earned; save(); if(place===1) confetti();
   const idx=allSets().findIndex(s=>s.title===G.set.title), mode=G.mode;
   app.innerHTML=`<div class="card fade" style="text-align:center"><h1>${place===1?"🏆 You Win!":place===2?"🥈 So close!":"Game Over"}</h1>
@@ -1112,7 +1114,7 @@ async function liveFinish(){
   await new Promise(r=>setTimeout(r,1500));
   let ps=[]; try{ ps=await FB.getPlayers(code); }catch(e){}
   const sorted=sortP(ps,g), place=sorted.findIndex(p=>p.id===UID)+1, correct=G?G.correct:0;
-  const earned=correct*3+(sorted.length>1?([0,30,20,10][place]||0):0);
+  const earned=reward(correct,g.set);
   if(G&&G.total){ S.tokens+=earned; save(); }
   if(place===1&&sorted.length>1) confetti();
   app.innerHTML=`<div class="card fade" style="text-align:center"><h1>${place===1?"🏆 You Win!":place&&place<=3?"🎉 Top 3!":"Game Over"}</h1>
