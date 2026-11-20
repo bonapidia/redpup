@@ -22,6 +22,8 @@ window.FIREBASE_CONFIG = {
   messagingSenderId: "252090851053",
   appId: "1:252090851053:web:1bd5e9ea63c431a1b236e4"
 };
+// Shown to players who need help (forgot password, etc.). Put your support email between the quotes.
+window.SUPPORT_EMAIL = "";
 </script>
 
 <style>
@@ -40,6 +42,8 @@ window.FIREBASE_CONFIG = {
   header nav button{font-size:14px;padding:6px 9px;white-space:nowrap}
   @media(max-width:1100px){header nav{flex-wrap:wrap}}
   .tokens{white-space:nowrap}
+  .user button.acct{color:#fff;border:none;font-size:15px;font-weight:600;padding:3px 6px}
+  .user button.acct:hover{background:rgba(255,255,255,.12)}
   .user button{font:inherit;font-size:13px;background:transparent;color:#ffb3b8;border:1px solid #ffb3b8;border-radius:8px;padding:3px 8px;cursor:pointer}
   nav button,.btn{font-family:inherit;font-size:17px;font-weight:600;border:2px solid var(--red);border-radius:12px;padding:9px 16px;cursor:pointer;background:#fff;color:var(--red);box-shadow:0 4px 0 var(--dark);transition:transform .1s,box-shadow .1s}
   nav button:hover,.btn:hover{transform:translateY(-2px);box-shadow:0 6px 0 var(--dark)}
@@ -252,20 +256,40 @@ if (window.FB) {
     const userDoc = uid => F.doc(db, "users", uid);
     window.FB = {
       onAuth: cb => A.onAuthStateChanged(auth, u => cb(u ? { uid: u.uid, emailName: (u.email || "").split("@")[0] } : null)),
-      async signUp(name, pw) {
-        // Firebase Auth already blocks duplicate usernames (same email), so no pre-check needed
-        const cred = await A.createUserWithEmailAndPassword(auth, email(name), pw);
-        await F.setDoc(F.doc(db, "usernames", name.toLowerCase()), { uid: cred.user.uid, name });
+      async signUp(name, pw, realEmail) {
+        // log-in email is their real email if they gave one, otherwise a hidden username@redpup.game
+        const cred = await A.createUserWithEmailAndPassword(auth, realEmail || email(name), pw);
+        try { await F.setDoc(F.doc(db, "usernames", name.toLowerCase()), { uid: cred.user.uid, name }); }
+        catch (e) { await cred.user.delete().catch(() => {}); throw { code: "taken" }; } // username already used
         return cred.user.uid;
+      },
+      currentEmail: () => (auth.currentUser && auth.currentUser.email) || "",
+      resetPassword: em => A.sendPasswordResetEmail(auth, em.trim()),
+      async addEmail(newEmail, pw) {
+        const u = auth.currentUser;
+        await A.reauthenticateWithCredential(u, A.EmailAuthProvider.credential(u.email, pw));
+        await A.verifyBeforeUpdateEmail(u, newEmail.trim());
+      },
+      async changePassword(oldPw, newPw) {
+        const u = auth.currentUser;
+        await A.reauthenticateWithCredential(u, A.EmailAuthProvider.credential(u.email, oldPw));
+        await A.updatePassword(u, newPw);
       },
       async ensureUsername(uid, name) {
         const ref = F.doc(db, "usernames", name.toLowerCase());
         if (!(await F.getDoc(ref)).exists()) await F.setDoc(ref, { uid, name });
       },
-      signIn: (name, pw) => A.signInWithEmailAndPassword(auth, email(name), pw),
+      signIn: (id, pw) => A.signInWithEmailAndPassword(auth, id.includes("@") ? id.trim() : email(id), pw),
       signOut: () => A.signOut(auth),
       async getUser(uid) { const s = await F.getDoc(userDoc(uid)); return s.exists() ? s.data() : null; },
       saveUser: (uid, data) => F.setDoc(userDoc(uid), data),
+      // only writes if nobody saved a newer version (another tab/device) since we loaded
+      saveUserSafe: (uid, data, baseRev) => F.runTransaction(db, async tx => {
+        const cur = await tx.get(userDoc(uid));
+        if (cur.exists() && (cur.data().rev || 0) > baseRev) throw { code: "stale", data: cur.data() };
+        tx.set(userDoc(uid), data);
+      }),
+      watchUser: (uid, cb) => F.onSnapshot(userDoc(uid), s => cb(s.exists() ? s.data() : null, s.metadata.hasPendingWrites)),
       async lookup(name) { const s = await F.getDoc(F.doc(db, "usernames", name.toLowerCase())); return s.exists() ? s.data() : null; },
       async offer(uid, data, trade) {
         const b = F.writeBatch(db);
@@ -504,30 +528,89 @@ function loadGuest(){
   }catch(e){}
   return normalize(null);
 }
-let saveT=null;
+let saveT=null, LOADED=false, unsubUser=null;
+const bkKey=()=>"redpup_bk_"+UID;
+function backup(dirty){ try{ localStorage.setItem(bkKey(),JSON.stringify({s:S,dirty})); }catch(e){} }
+function readBackup(){ try{ return JSON.parse(localStorage.getItem(bkKey())); }catch(e){ return null; } }
+function bump(){ S.rev=(S.rev||0)+1; backup(false); }   // used right before trade writes
+async function writeNow(){
+  clearTimeout(saveT); saveT=null;
+  if(MODE!=="fb"||!LOADED||!S) return;
+  const data=JSON.parse(JSON.stringify(S)); data.rev=(S.rev||0)+1;
+  try{ await FB.saveUserSafe(UID,data,S.rev||0); S.rev=data.rev; backup(false); }
+  catch(e){
+    if(e&&e.code==="stale"){ adoptRemote(e.data); }
+    else { toast("⚠️ Couldn't save — check your internet. Retrying…"); saveT=setTimeout(writeNow,5000); }
+  }
+}
+function adoptRemote(d){
+  S=normalize(d); backup(false);
+  document.getElementById("tok").textContent=S.tokens;
+  toast("🔄 Synced with your other tab or device");
+  if(!G&&!LIVE) { const t=document.querySelector("main h1"); if(t&&/Rooks|Market/.test(t.textContent)) go(/Rooks/.test(t.textContent)?"rooks":"market"); }
+}
 function save(){
   document.getElementById("tok").textContent=S?S.tokens:0;
   if(MODE==="guest"){ try{localStorage.setItem("redpup_guest",JSON.stringify(S));}catch(e){} }
-  else if(MODE==="fb"){ clearTimeout(saveT); saveT=setTimeout(()=>FB.saveUser(UID,S).catch(()=>toast("⚠️ Couldn't save — check your internet")),1000); }
+  else if(MODE==="fb"&&LOADED){ backup(true); clearTimeout(saveT); saveT=setTimeout(writeNow,800); }
 }
 function boot(){ if(booted) return; booted=true;
   if(window.FB && !FB_OFF){
     FB.onAuth(async u=>{
       if(SIGNING_UP) return;
-      if(u){ UID=u.uid; let d=null; try{d=await FB.getUser(UID);}catch(e){}
-        MODE="fb"; S=normalize(d); if(!S.name) S.name=u.emailName||"Player";
-        if(!d) FB.saveUser(UID,S).catch(()=>{});
+      if(u){ UID=u.uid; LOADED=false; MODE="fb";
+        app.innerHTML=`<div class="loading">Loading your Rooks… 🐶</div>`;
+        let d=null, ok=false;
+        for(let i=0;i<5&&!ok;i++){ try{ d=await FB.getUser(UID); ok=true; }catch(e){ await new Promise(r=>setTimeout(r,800*(i+1))); } }
+        if(!ok) return loadError();
+        const bk=readBackup(); let needSave=false;
+        if(!d&&bk&&bk.s){ d=bk.s; needSave=true; }                                   // remote missing -> restore this device's copy
+        else if(d&&bk&&bk.s&&bk.dirty&&(bk.s.rev||0)===(d.rev||0)){ d=bk.s; needSave=true; } // unsaved changes from last visit
+        S=normalize(d); if(!S.name) S.name=u.emailName||"Player";
+        LOADED=true;
+        if(needSave||!S.rev) await writeNow();
+        startUserWatch();
         FB.ensureUsername(UID,S.name).catch(()=>{});
-        afterLogin(); settleTrades(true); }
+        await afterLogin(); settleTrades(true); offerGuestMerge(); }
       else loginScreen();
     });
   } else loginScreen();
 }
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden"&&saveT) writeNow(); });
+window.addEventListener("pagehide",()=>{ if(saveT) writeNow(); });
 window.addEventListener("fb-ready",boot);
 window.addEventListener("fb-none",()=>{FB_OFF=true;boot();});
 if(window.FB) setTimeout(boot);
 setTimeout(()=>{ if(!booted){ FB_OFF=true; window.FB_ERROR="couldn't connect"; boot(); } },9000);
 
+function loadError(){
+  document.body.classList.add("out");
+  app.innerHTML=`<div class="login card pop"><div style="font-size:60px">📡</div><h2>Couldn't load your progress</h2>
+    <p>Your Rooks and tokens are safe — RedPup just couldn't reach the server. Check your internet and try again.</p>
+    <button class="btn red big" onclick="location.reload()">Try again</button></div>`;
+}
+function startUserWatch(){
+  if(unsubUser) unsubUser();
+  unsubUser=FB.watchUser(UID,(d,pending)=>{ if(!d||pending||!LOADED||!S) return; if((d.rev||0)>(S.rev||0)) adoptRemote(d); });
+}
+function offerGuestMerge(){
+  let g=null; try{ g=JSON.parse(localStorage.getItem("redpup_guest")); }catch(e){}
+  if(!g||!g.owned) return;
+  const n=Object.values(g.owned).reduce((a,b)=>a+b,0);
+  if(n<=1&&(g.tokens||0)<=100){ try{localStorage.removeItem("redpup_guest")}catch(e){} return; }
+  showModal(`<div style="font-size:50px">🎒</div><h2>Found old guest progress!</h2>
+    <p>This device has progress from playing as a guest: <b>🪙 ${g.tokens||0}</b> and <b>${n} Rooks</b>. Add it to <b>${esc(NAME())}</b>?</p><br>
+    <div class="row"><button class="btn red" onclick="mergeGuest()">Add it to my account</button><button class="btn" onclick="closeModal()">Not now</button></div>`);
+}
+function mergeGuest(){
+  let g=null; try{ g=JSON.parse(localStorage.getItem("redpup_guest")); }catch(e){}
+  if(!g) return closeModal();
+  S.tokens+=(g.tokens||0);
+  for(const [k,v] of Object.entries(g.owned||{})) if(R[k]) S.owned[k]=(S.owned[k]||0)+v;
+  for(const s of (g.sets||[])) if(!S.sets.some(x=>x.title===s.title)) S.sets.push(s);
+  try{ localStorage.removeItem("redpup_guest"); }catch(e){}
+  save(); closeModal(); confetti(); toast("🎒 Guest progress added!","good"); go("home");
+}
 function loginScreen(tab="in"){
   MODE=null; S=null; TEACHER=false; leaveLive(); document.body.classList.add("out"); closeModal();
   app.innerHTML=`<div class="login card pop">
@@ -535,18 +618,76 @@ function loginScreen(tab="in"){
     ${FB_OFF?`<p class="note">Can't connect to RedPup right now${window.FB_ERROR?" ("+esc(window.FB_ERROR)+")":""}. Check your internet, then try again.</p><button class="btn red big" onclick="location.reload()">Try again</button>`:`
     <div class="tabs"><button class="${tab==="in"?"on":""}" onclick="loginScreen('in')">Log in</button><button class="${tab==="up"?"on":""}" onclick="loginScreen('up')">Sign up</button></div>
     <form onsubmit="event.preventDefault();${tab==="in"?"doLogin()":"doSignup()"}">
-      <input id="l_name" placeholder="Username" autocomplete="username" maxlength="15">
+      <input id="l_name" placeholder="${tab==="in"?"Username or email":"Username"}" autocomplete="username" maxlength="${tab==="in"?80:15}">
+      ${tab==="up"?`<input id="l_email" type="email" placeholder="Email (optional — lets you reset your password)" autocomplete="email" maxlength="80">`:""}
       <input id="l_pw" type="password" placeholder="Password (6+ characters)" autocomplete="${tab==="in"?"current-password":"new-password"}">
       ${tab==="up"?`<input id="l_pw2" type="password" placeholder="Type password again" autocomplete="new-password">`:""}
       <div id="l_err" class="err"></div>
       <button id="l_go" class="btn red big" type="submit">${tab==="in"?"Log in":"Create account"}</button>
     </form>
-    <p class="muted small">${tab==="in"?"New here? Click <b>Sign up</b> to make your free account.":"Your Rooks and tokens are saved to your account."}</p>`}</div>`;
+    ${tab==="in"?`<a href="#" onclick="forgotScreen();return false" style="color:var(--red);font-weight:600">Forgot password?</a>`:""}
+    <p class="muted small">${tab==="in"?"New here? Click <b>Sign up</b> to make your free account.":"Your Rooks and tokens are saved to your account. If you add an email, you'll log in with your email."}</p>
+    ${supportLine()}`}</div>`;
+}
+const SUPPORT=()=>window.SUPPORT_EMAIL||"";
+function supportLine(){ return SUPPORT()?`<p class="muted small">Need help? Email <a href="mailto:${esc(SUPPORT())}">${esc(SUPPORT())}</a></p>`:""; }
+const isFakeEmail=e=>!e||/@redpup\.game$/i.test(e);
+const looksEmail=e=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e);
+function forgotScreen(){
+  app.innerHTML=`<div class="login card pop"><div style="font-size:54px">🔑</div><h2>Forgot your password?</h2>
+    <p>Type the email on your RedPup account and we'll send you a link to make a new password.</p>
+    <form onsubmit="event.preventDefault();doReset()"><input id="f_email" type="email" placeholder="you@example.com" autocomplete="email">
+      <div id="f_msg" class="err"></div><button id="f_go" class="btn red big" type="submit">Send reset link</button></form>
+    <p class="muted small">No email on your account? ${SUPPORT()?`Email <a href="mailto:${esc(SUPPORT())}">${esc(SUPPORT())}</a> with your username and we'll help you.`:"Ask the person who runs RedPup at your school for help."}</p>
+    <a href="#" onclick="loginScreen('in');return false">← Back to log in</a></div>`;
+}
+async function doReset(){
+  const em=f_email.value.trim(); if(!looksEmail(em)) return f_msg.textContent="Type a real email address.";
+  if(isFakeEmail(em)) return f_msg.textContent="That's a username account with no email — see the help line below.";
+  f_go.disabled=true;
+  try{ await FB.resetPassword(em); f_msg.style.color="#16a34a"; f_msg.textContent="📬 If that email is on a RedPup account, a reset link is on its way. Check your inbox (and spam)!"; }
+  catch(e){ f_msg.textContent=fbErr(e); f_go.disabled=false; }
+}
+function accountModal(){
+  const em=FB.currentEmail(), noEmail=isFakeEmail(em);
+  showModal(`<div style="font-size:48px">👤</div><h2>${esc(NAME())}</h2>${TEACHER?'<span class="badge">TEACHER</span>':""}
+    <div style="text-align:left;display:grid;gap:8px;margin-top:12px">
+      <b>📧 Email</b>
+      ${noEmail?`<p class="small">You don't have an email yet. Add one so you can reset your password if you forget it.</p>
+        <input id="a_email" type="email" placeholder="you@example.com"><input id="a_pw" type="password" placeholder="Your current password">
+        <button class="btn red small" id="a_go" onclick="doAddEmail()">Add email</button>
+        <p class="muted small">We'll email you a link. After you click it, log in with your <b>email</b> instead of your username.</p>`
+      :`<p class="small">${esc(em)} — use it to log in or reset your password.</p>`}
+      <b style="margin-top:8px">🔒 Change password</b>
+      <input id="c_old" type="password" placeholder="Current password"><input id="c_new" type="password" placeholder="New password (6+ characters)">
+      <button class="btn small" id="c_go" onclick="doChangePw()">Change password</button>
+      <div id="a_msg" class="err"></div>
+    </div>${supportLine()}<br><button class="btn" onclick="closeModal()">Close</button>`);
+}
+async function doAddEmail(){
+  const em=a_email.value.trim(), pw=a_pw.value;
+  if(!looksEmail(em)) return a_msg.textContent="Type a real email address.";
+  if(!pw) return a_msg.textContent="Type your current password.";
+  a_go.disabled=true;
+  try{ await FB.addEmail(em,pw); a_msg.style.color="#16a34a"; a_msg.textContent=`📬 Check ${em} and click the link. Then log in with that email.`; }
+  catch(e){ a_msg.style.color=""; a_msg.textContent=fbErr(e); a_go.disabled=false; }
+}
+async function doChangePw(){
+  const o=c_old.value, n=c_new.value;
+  if(!o) return a_msg.textContent="Type your current password.";
+  if(n.length<6) return a_msg.textContent="New password needs 6+ characters.";
+  c_go.disabled=true;
+  try{ await FB.changePassword(o,n); a_msg.style.color="#16a34a"; a_msg.textContent="✅ Password changed!"; c_old.value=c_new.value=""; }
+  catch(e){ a_msg.style.color=""; a_msg.textContent=fbErr(e); }
+  c_go.disabled=false;
 }
 const BAD=["fuck","shit","bitch","dick","porn","sex","nigg","fag","cunt","whore","slut"];
 function fbErr(e){ const c=(e&&e.code)||"";
-  if(c==="taken"||c.includes("email-already-in-use")) return "That username is taken.";
-  if(c.includes("invalid-credential")||c.includes("wrong-password")||c.includes("user-not-found")||c.includes("invalid-login")) return "Wrong username or password.";
+  if(c==="taken") return "That username is taken.";
+  if(c.includes("email-already-in-use")) return "That username or email is already used.";
+  if(c.includes("invalid-email")) return "That email doesn't look right.";
+  if(c.includes("requires-recent-login")) return "Please log out and back in, then try again.";
+  if(c.includes("invalid-credential")||c.includes("wrong-password")||c.includes("user-not-found")||c.includes("invalid-login")) return "Wrong password (or username/email).";
   if(c.includes("weak-password")) return "Password needs 6+ characters.";
   if(c.includes("too-many-requests")) return "Too many tries. Wait a minute and try again.";
   if(c.includes("network")) return "No internet connection.";
@@ -559,23 +700,24 @@ function fbErr(e){ const c=(e&&e.code)||"";
   if(c.includes("unavailable")||m.includes("offline")) return "Can't reach Firebase — the Firestore Database may not be created yet, or this network blocks it.";
   return "Something went wrong ("+(c||m||"unknown")+")."; }
 async function doLogin(){
-  const n=l_name.value.trim(), p=l_pw.value; if(!n||!p) return l_err.textContent="Enter your username and password.";
+  const n=l_name.value.trim(), p=l_pw.value; if(!n||!p) return l_err.textContent="Enter your username (or email) and password.";
   l_go.disabled=true; l_err.textContent="";
   try{ await FB.signIn(n,p); }catch(e){ l_err.textContent=fbErr(e); l_go.disabled=false; }
 }
 async function doSignup(){
-  const n=l_name.value.trim(), p=l_pw.value;
+  const n=l_name.value.trim(), p=l_pw.value, em=(l_email.value||"").trim();
   if(!/^[A-Za-z0-9_]{3,15}$/.test(n)) return l_err.textContent="Username: 3–15 letters, numbers or _";
+  if(em&&(!looksEmail(em)||isFakeEmail(em))) return l_err.textContent="That email doesn't look right (or leave it empty).";
   if(BAD.some(w=>n.toLowerCase().includes(w))) return l_err.textContent="Please pick a different username.";
   if(p.length<6) return l_err.textContent="Password needs 6+ characters.";
   if(p!==l_pw2.value) return l_err.textContent="Passwords don't match.";
   l_go.disabled=true; l_err.textContent=""; SIGNING_UP=true;
   try{
-    UID=await FB.signUp(n,p);
-    const g=loadGuest(); S=normalize({...g,name:n}); MODE="fb";
-    await FB.saveUser(UID,S);
+    UID=await FB.signUp(n,p,em||null);
+    const g=loadGuest(); S=normalize({...g,name:n,rev:1}); MODE="fb";
+    await FB.saveUser(UID,S); LOADED=true; backup(false); startUserWatch();
     try{localStorage.removeItem("redpup_guest");localStorage.removeItem("redpup");}catch(e){}
-    afterLogin(); toast(`Welcome to RedPup, ${n}! 🐶`,"good"); confetti();
+    afterLogin(); toast(em?`Welcome, ${n}! Next time, log in with ${em} 🐶`:`Welcome to RedPup, ${n}! 🐶`,"good"); confetti();
   }catch(e){ l_err.textContent=fbErr(e); l_go.disabled=false; }
   SIGNING_UP=false;
 }
@@ -586,12 +728,12 @@ async function afterLogin(){
   try{localStorage.removeItem("redpup_mode")}catch(e){}
   document.getElementById("nav").innerHTML=(TEACHER?`<button onclick="go('host')">🎤 Host</button><button onclick="go('create')">✏️ Create</button>`:`<button onclick="go('join')">🔑 Join</button>`)+
     `<button onclick="go('play')">▶ Solo</button><button onclick="go('market')">🛒 Market</button><button onclick="go('rooks')">🏰 Rooks</button><button onclick="go('trade')">🔁 Trade</button>`;
-  userchip.innerHTML=`👤 ${esc(NAME())}${TEACHER?' <span class="badge">TEACHER</span>':""} <button onclick="logout()">Log out</button>`;
+  userchip.innerHTML=`<button class="acct" onclick="accountModal()" title="My account">👤 ${esc(NAME())}</button>${TEACHER?' <span class="badge">TEACHER</span>':""} <button onclick="logout()">Log out</button>`;
   save(); go("home");
 }
 async function logout(){
-  stopTimers(); clearTimeout(saveT); leaveLive();
-  if(MODE==="fb"){ try{await FB.saveUser(UID,S);}catch(e){} MODE=null; await FB.signOut(); }
+  stopTimers(); leaveLive();
+  if(MODE==="fb"){ if(saveT) await writeNow(); if(unsubUser){unsubUser();unsubUser=null;} LOADED=false; MODE=null; await FB.signOut(); }
   try{localStorage.removeItem("redpup_mode")}catch(e){}
   UID=null; loginScreen();
 }
@@ -973,7 +1115,7 @@ async function sendOffer(){
   if(mode==="none"||(mode==="some"&&!(u.allow||[]).includes(NAME().toLowerCase()))){ t_send.disabled=false;
     return toast(mode==="none"?`🔒 ${u.name} isn't accepting trades`:`⭐ ${u.name} only accepts trades from certain people`); }
   const before=snap(); takeR(give);
-  try{ await FB.offer(UID,S,{from:UID,fromName:NAME(),fromKey:NAME().toLowerCase(),to:u.uid,toName:u.name,toKey:u.name.toLowerCase(),give,want}); toast(`Offer sent to ${u.name}!`,"good"); }
+  bump(); try{ await FB.offer(UID,S,{from:UID,fromName:NAME(),fromKey:NAME().toLowerCase(),to:u.uid,toName:u.name,toKey:u.name.toLowerCase(),give,want}); toast(`Offer sent to ${u.name}!`,"good"); }
   catch(e){ S=before; toast(String(e&&e.code).includes("permission")?`${u.name} isn't accepting trades from you`:"Couldn't send — try again"); }
   save(); trade();
 }
@@ -982,14 +1124,14 @@ async function respond(id,accept){
   if(accept&&t.want&&!S.owned[t.want]) return toast(`You need a ${t.want} to accept this`);
   const before=snap();
   if(accept){ addR(t.give); if(t.want) takeR(t.want); }
-  try{ await FB.setTrade(id,accept?"accepted":"declined",UID,S); if(accept){ toast(`You got ${t.give}! 🎉`,"good"); confetti(); } else toast("Offer declined"); }
+  bump(); try{ await FB.setTrade(id,accept?"accepted":"declined",UID,S); if(accept){ toast(`You got ${t.give}! 🎉`,"good"); confetti(); } else toast("Offer declined"); }
   catch(e){ S=before; toast("Couldn't do that — it may have been cancelled"); }
   save(); trade();
 }
 async function cancelOffer(id){
   const t=TRADES.find(x=>x.id===id); if(!t) return;
   const before=snap(); addR(t.give);
-  try{ await FB.setTrade(id,"cancelled",UID,S); toast(`${t.give} is back in your collection`); }
+  bump(); try{ await FB.setTrade(id,"cancelled",UID,S); toast(`${t.give} is back in your collection`); }
   catch(e){ S=before; toast("Couldn't cancel — they may have answered already"); }
   save(); trade();
 }
@@ -1002,7 +1144,7 @@ async function settleTrades(quiet){
     if(t.status==="accepted"||t.status==="declined"){
       const before=snap(), ok=t.status==="accepted";
       if(ok){ if(t.want) addR(t.want); } else addR(t.give);
-      try{ await FB.setTrade(t.id,ok?"done":"returned",UID,S); t.status=ok?"done":"returned"; changed=true;
+      bump(); try{ await FB.setTrade(t.id,ok?"done":"returned",UID,S); t.status=ok?"done":"returned"; changed=true;
         toast(ok?`${t.toName} accepted your trade!${t.want?" You got "+t.want+" 🎉":""}`:`${t.toName} declined — ${t.give} is back`,ok?"good":""); }
       catch(e){ S=before; }
     }
