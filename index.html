@@ -24,6 +24,8 @@ window.FIREBASE_CONFIG = {
 };
 // Shown to players who need help (forgot password, etc.). Put your support email between the quotes.
 window.SUPPORT_EMAIL = "redpupoff@outlook.com";
+// Your Cloudflare Worker address for admin password resets (the yellow dot). Paste it between the quotes.
+window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
 </script>
 
 <style>
@@ -182,7 +184,9 @@ window.SUPPORT_EMAIL = "redpupoff@outlook.com";
   .mine-set{background:var(--cream);border-radius:14px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px}
 
   /* login */
-  .login{max-width:440px;margin:30px auto;text-align:center;display:grid;gap:10px}
+  .login{max-width:440px;margin:30px auto;text-align:center;display:grid;gap:10px;position:relative}
+  .ydot{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;background:#ffb703;border:none;cursor:pointer;box-shadow:0 3px 0 #c98a00;padding:0}
+  .ydot:hover{transform:scale(1.08)}
   .login form{display:grid;gap:10px}
   .tabs{display:flex;background:var(--cream);border-radius:12px;padding:4px}
   .tabs button{flex:1;font:inherit;font-weight:600;border:none;background:none;padding:9px;border-radius:9px;cursor:pointer;color:#7a6a6c}
@@ -614,6 +618,7 @@ function mergeGuest(){
 function loginScreen(tab="in"){
   MODE=null; S=null; TEACHER=false; leaveLive(); document.body.classList.add("out"); closeModal();
   app.innerHTML=`<div class="login card pop">
+    ${FB_OFF?"":`<button class="ydot" onclick="adminReset()" aria-label="Help"></button>`}
     <img class="brand" src="${LOGO_LIGHT}" alt="RedPup — Outsmart, Outplay, Outscore">
     ${FB_OFF?`<p class="note">Can't connect to RedPup right now${window.FB_ERROR?" ("+esc(window.FB_ERROR)+")":""}. Check your internet, then try again.</p><button class="btn red big" onclick="location.reload()">Try again</button>`:`
     <div class="tabs"><button class="${tab==="in"?"on":""}" onclick="loginScreen('in')">Log in</button><button class="${tab==="up"?"on":""}" onclick="loginScreen('up')">Sign up</button></div>
@@ -633,6 +638,57 @@ const SUPPORT=()=>window.SUPPORT_EMAIL||"";
 function supportLine(){ return SUPPORT()?`<p class="muted small">Need help? Email <a href="mailto:${esc(SUPPORT())}">${esc(SUPPORT())}</a></p>`:""; }
 const isFakeEmail=e=>!e||/@redpup\.game$/i.test(e);
 const looksEmail=e=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e);
+// ---------- admin password reset (yellow dot) ----------
+let ARST=null, RESET_NAME="";
+function goLoginAs(){ closeModal(); loginScreen('in'); const n=document.getElementById('l_name'); if(n) n.value=RESET_NAME; const p=document.getElementById('l_pw'); if(p) p.focus(); }
+async function resetCall(body){
+  const r=await fetch(window.RESET_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  let d={}; try{ d=await r.json(); }catch(e){}
+  if(!r.ok||!d.ok) throw new Error(d.error||"Something went wrong.");
+  return d;
+}
+function adminReset(){
+  ARST=null;
+  if(!window.RESET_URL) return showModal(`<h2>Not set up yet</h2><p>Add the reset helper's address to <b>RESET_URL</b> in index.html.</p><br><button class="btn" onclick="closeModal()">Close</button>`);
+  showModal(`<div style="font-size:44px">🔐</div><h2>Admin: reset a password</h2>
+    <form onsubmit="event.preventDefault();adminCheck()" style="display:grid;gap:8px;text-align:left">
+      <input id="ar_user" placeholder="Player's username" maxlength="15" autocomplete="off">
+      <input id="ar_code" type="password" placeholder="Admin passcode" autocomplete="off">
+      <div id="ar_msg" class="err"></div>
+      <div class="row"><button class="btn red" id="ar_go" type="submit">Continue</button><button class="btn" type="button" onclick="ARST=null;closeModal()">Cancel</button></div></form>`);
+  setTimeout(()=>{ const e=document.getElementById("ar_user"); if(e) e.focus(); },50);
+}
+async function adminCheck(){
+  const u=ar_user.value.trim(), c=ar_code.value;
+  if(!u||!c) return ar_msg.textContent="Type the username and the admin passcode.";
+  ar_go.disabled=true; ar_msg.textContent="";
+  try{ const d=await resetCall({action:"check",username:u,passcode:c}); ARST={user:u,code:c,name:d.name}; handOff(); }
+  catch(e){ ar_msg.textContent=e.message; ar_go.disabled=false; }
+}
+function handOff(){
+  showModal(`<div style="font-size:54px">🤝</div><h2>Hand the computer to<br>${esc(ARST.name)}</h2>
+    <p class="muted">They'll pick their new password next.</p><br>
+    <div class="row"><button class="btn red big" onclick="newPwScreen()">I'm ${esc(ARST.name)} →</button><button class="btn" onclick="ARST=null;closeModal()">Cancel</button></div>`);
+}
+function newPwScreen(){
+  showModal(`<div style="font-size:44px">🔑</div><h2>Hi ${esc(ARST.name)}! Make a new password</h2>
+    <form onsubmit="event.preventDefault();adminSave()" style="display:grid;gap:8px">
+      <input id="np1" type="password" placeholder="New password (6+ characters)" autocomplete="new-password">
+      <input id="np2" type="password" placeholder="Type it again" autocomplete="new-password">
+      <div id="np_msg" class="err"></div>
+      <button class="btn red big" id="np_go" type="submit">Save new password</button></form>`);
+  setTimeout(()=>{ const e=document.getElementById("np1"); if(e) e.focus(); },50);
+}
+async function adminSave(){
+  const a=np1.value, b=np2.value;
+  if(a.length<6) return np_msg.textContent="Password needs 6+ characters.";
+  if(a!==b) return np_msg.textContent="Passwords don't match.";
+  np_go.disabled=true; np_msg.textContent="";
+  try{ await resetCall({action:"reset",username:ARST.user,passcode:ARST.code,newPassword:a});
+    const name=ARST.name; ARST=null;
+    showModal(`<div style="font-size:54px">✅</div><h2>Password changed!</h2><p>Log in with your new password, ${esc(name)}.</p><br><button class="btn red big" onclick="goLoginAs()">Log in</button>`); RESET_NAME=name; }
+  catch(e){ np_msg.textContent=e.message; np_go.disabled=false; }
+}
 function forgotScreen(){
   app.innerHTML=`<div class="login card pop"><div style="font-size:54px">🔑</div><h2>Forgot your password?</h2>
     <p>Type the email on your RedPup account and we'll send you a link to make a new password.</p>
