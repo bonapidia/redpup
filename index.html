@@ -145,12 +145,28 @@ window.FIREBASE_CONFIG = {
   .rar{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
   .Common{color:#6c757d}.Uncommon{color:#2a9d8f}.Rare{color:#1d4ed8}.Epic{color:#9b5de5}.Legendary{color:#f77f00}
   .rar.Chroma{background:linear-gradient(90deg,#f00,#f90,#0c0,#09f,#c0f);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .rar.Unique{color:#facc15;background:#0a0a0a;padding:1px 6px;border-radius:5px}
+  .rar.Mystical{background:linear-gradient(90deg,#a855f7,#111,#a855f7,#111);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shimmer 2.5s linear infinite;font-weight:800}
+  @keyframes shimmer{to{background-position:300% 0}}
+  .rook.Unique:not(.locked){box-shadow:0 0 0 3px #facc15 inset}
+  .rook.Mystical:not(.locked){background:#18181b;color:#fff;box-shadow:0 0 18px #a855f7}
+  .reveal.Unique{box-shadow:0 0 60px #facc15,0 0 20px #000}.reveal.Mystical{box-shadow:0 0 80px #a855f7,0 0 30px #000;background:#18181b}
+  .sacrifice{background:linear-gradient(135deg,#7f1d1d,#0a0a0a);color:#fff;border-color:#000;box-shadow:0 4px 0 #000;animation:bob 1.6s infinite}
+  .void{background:radial-gradient(circle,#2e1065,#000);color:#fff;border-color:#000}
   .reveal{border-radius:50%;display:inline-block;padding:10px}
   .reveal.Rare{box-shadow:0 0 40px #60a5fa}.reveal.Epic{box-shadow:0 0 50px #c084fc}.reveal.Legendary{box-shadow:0 0 60px #fb923c}.reveal.Chroma{box-shadow:0 0 70px #f0abfc,0 0 30px #67e8f9}
 
   /* trade */
   .tform{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:end}
   .tform label{font-size:13px;font-weight:600;color:#7a6a6c;display:grid;gap:4px}
+  .tsearch{position:relative}
+  .sugg{position:absolute;left:0;right:0;top:100%;background:#fff;border:2px solid var(--line);border-radius:10px;z-index:4;box-shadow:0 8px 20px rgba(0,0,0,.1);overflow:hidden}
+  .sugg:empty{display:none}
+  .sugg div{padding:8px 12px;cursor:pointer;display:flex;justify-content:space-between;color:var(--ink);font-size:15px}
+  .sugg div:hover{background:var(--cream)}
+  .prefs{background:var(--cream);border-radius:14px;padding:14px;margin-top:18px;display:grid;gap:8px}
+  .prefs .opts{display:flex;gap:16px;flex-wrap:wrap}.prefs label{display:flex;gap:6px;align-items:center;font-weight:600}
+  .prefs input[type=radio]{width:auto}
   .offer{background:var(--cream);border-radius:14px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;flex-wrap:wrap}
   .offer .what{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 
@@ -263,6 +279,12 @@ if (window.FB) {
         b.set(userDoc(uid), data);
         await b.commit();
       },
+      async searchUsers(term) {
+        const t = term.toLowerCase(), c = F.collection(db, "usernames");
+        const s = await F.getDocs(F.query(c, F.where(F.documentId(), ">=", t), F.where(F.documentId(), "<=", t + "\uf8ff"), F.limit(8)));
+        return s.docs.map(d => d.data());
+      },
+      setTradePrefs: (name, tradeMode, allow) => F.updateDoc(F.doc(db, "usernames", name.toLowerCase()), { tradeMode, allow }),
       async isTeacher(uid) { return (await F.getDoc(F.doc(db, "teachers", uid))).exists(); },
       async getGame(code) { const s = await F.getDoc(F.doc(db, "games", code)); return s.exists() ? s.data() : null; },
       createGame: (code, data) => F.setDoc(F.doc(db, "games", code), data),
@@ -341,11 +363,22 @@ const ROOKS = [
   ["Headless Keep","Legendary","#1c1917","#f97316","💀","Halloween"],
 
   ["Rainbow Rook","Chroma","rainbow","#ffffff","🌈","Any"],["Prism Rook","Chroma","rainbow","#a5f3fc","💎","Any"],
+
+  ["Pawnling","Common","#f5f5f4","#57534e","♟️","Rook Pack"],["Checkers","Common","#ef4444","#111827","🏁","Rook Pack"],
+  ["Knightly","Common","#a8a29e","#44403c","🐴","Rook Pack"],["Bishop Rook","Uncommon","#7c3aed","#fef3c7","🎩","Rook Pack"],
+  ["Castle Guard","Rare","#1d4ed8","#facc15","⚔️","Rook Pack"],["Queen's Tower","Epic","#db2777","#fde68a","💍","Rook Pack"],
+  ["King's Keep","Legendary","#facc15","#92400e","🏆","Rook Pack"],["Checkmate","Unique","checker","#facc15","💠","Rook Pack"],
+
+  ["THE ROOK","Mystical","#121212","#3f3f46","PIXEL","Sacrifice"],
 ];
 const R = {}; ROOKS.forEach((r,i)=>R[r[0]]=r);
-const RARITIES = ["Common","Uncommon","Rare","Epic","Legendary","Chroma"];
+const RARITIES = ["Common","Uncommon","Rare","Epic","Legendary","Chroma","Unique","Mystical"];
 const RARITY_ODDS = {Common:55,Uncommon:25,Rare:13,Epic:5.5,Legendary:1.4,Chroma:0.1};
-const SELL = {Common:5,Uncommon:15,Rare:40,Epic:150,Legendary:500,Chroma:2000};
+const SELL = {Common:5,Uncommon:15,Rare:40,Epic:150,Legendary:500,Chroma:2000,Unique:5000,Mystical:50000};
+const boxOdds=b=>b.unique?{...RARITY_ODDS,Common:54.988,Unique:0.012}:RARITY_ODDS;
+const boxLabel=n=>n==="Any"?"Chroma":n==="Sacrifice"?"???":/Pack$/.test(n)?n:n+" Box";
+const SECRET="THE ROOK";
+const visibleRooks=()=>ROOKS.filter(r=>r[0]!==SECRET||S.owned[SECRET]);
 const BOXES = [
   {name:"Castle",price:25,ic:"🏰",c1:"#b45309",c2:"#f59e0b"},
   {name:"Ocean",price:30,ic:"🌊",c1:"#0369a1",c2:"#38bdf8"},
@@ -356,6 +389,7 @@ const BOXES = [
   {name:"Food",price:35,ic:"🍔",c1:"#c2410c",c2:"#facc15",from:"2026-12-03"},
   {name:"Christmas",price:50,ic:"🎄",c1:"#b91c1c",c2:"#15803d",season:"xmas"},
   {name:"Halloween",price:50,ic:"🎃",c1:"#431407",c2:"#ea580c",season:"halloween"},
+  {name:"Rook Pack",price:75,ic:"♜",c1:"#0a0a0a",c2:"#52525b",unique:true},
 ];
 // Old (v1) saves stored Rooks by number — this maps them to names.
 const OLD_NAMES=["Pebble","Brick","Mossy","Sir Turret","Flagbearer","Royal Rook","Dragonkeep","Coral","Barnacle","Lighthouse","Captain Rook","Sunken Tower","Kraken Keep","Comet","Moonrock","Astro Rook","Nebula","Ringed Rook","Galaxy Keep","Rainbow Rook"];
@@ -363,18 +397,25 @@ const OLD_NAMES=["Pebble","Brick","Mossy","Sir Turret","Flagbearer","Royal Rook"
 let uid=0;
 function rookSVG(name,size=90,cls=""){
   const r=R[name]||R.Pebble; const [,,body,acc,emo]=r; const id="g"+(uid++);
-  const fill = body==="rainbow" ? `url(#${id})` : body;
+  const fill = body==="rainbow" ? `url(#${id})` : body==="checker" ? `url(#p${id})` : body;
+  const shades = emo==="PIXEL";
   return `<svg class="${cls}" width="${size}" height="${size}" viewBox="0 0 100 100">
-    <defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4d6d"/><stop offset=".35" stop-color="#ffd166"/><stop offset=".65" stop-color="#06d6a0"/><stop offset="1" stop-color="#4361ee"/></linearGradient></defs>
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4d6d"/><stop offset=".35" stop-color="#ffd166"/><stop offset=".65" stop-color="#06d6a0"/><stop offset="1" stop-color="#4361ee"/></linearGradient>
+      <pattern id="p${id}" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#fafafa"/><rect width="6" height="6" fill="#111"/><rect x="6" y="6" width="6" height="6" fill="#111"/></pattern></defs>
     <ellipse cx="50" cy="93" rx="30" ry="5" fill="rgba(0,0,0,.15)"/>
     <path d="M22 18h12v8h8v-8h16v8h8v-8h12v22l-6 6v30h8v12H20V76h8V46l-6-6z" fill="${fill}" stroke="${acc}" stroke-width="3" stroke-linejoin="round"/>
     <rect x="20" y="40" width="60" height="5" fill="${acc}" opacity=".5"/>
-    <circle cx="40" cy="58" r="6" fill="#fff"/><circle cx="60" cy="58" r="6" fill="#fff"/>
+    ${shades?`<g shape-rendering="crispEdges">
+      <path d="M22 49H78V54H22Z M25 54H48V60H45V63H42V66H31V63H28V60H25Z M52 54H75V60H72V63H69V66H58V63H55V60H52Z" fill="#000" stroke="#e4e4e7" stroke-width="1.6"/>
+      <rect x="29" y="55" width="4" height="3" fill="#fff"/><rect x="33" y="58" width="3" height="3" fill="#fff"/>
+      <rect x="56" y="55" width="4" height="3" fill="#fff"/><rect x="60" y="58" width="3" height="3" fill="#fff"/></g>
+      <path d="M43 73q8 3 15-2" stroke="#e4e4e7" stroke-width="2.5" fill="none" stroke-linecap="round"/>`
+    :`<circle cx="40" cy="58" r="6" fill="#fff"/><circle cx="60" cy="58" r="6" fill="#fff"/>
     <circle cx="41" cy="59" r="3.3" fill="#1f1f1f"/><circle cx="61" cy="59" r="3.3" fill="#1f1f1f"/>
     <circle cx="42" cy="57.5" r="1.1" fill="#fff"/><circle cx="62" cy="57.5" r="1.1" fill="#fff"/>
     <path d="M43 68q7 6 14 0" stroke="#1f1f1f" stroke-width="2.5" fill="none" stroke-linecap="round"/>
     <circle cx="33" cy="66" r="3.5" fill="#ff8fa3" opacity=".6"/><circle cx="67" cy="66" r="3.5" fill="#ff8fa3" opacity=".6"/>
-    ${emo?`<text x="74" y="30" font-size="24" text-anchor="middle">${emo}</text>`:""}
+    ${emo?`<text x="74" y="30" font-size="24" text-anchor="middle">${emo}</text>`:""}`}
   </svg>`;
 }
 
@@ -573,7 +614,7 @@ function home(){
       :`<form class="joinbox" onsubmit="event.preventDefault();joinCode(jc.value)"><input id="jc" inputmode="numeric" maxlength="6" placeholder="123456"><button class="btn red big">Join</button></form>`}
     <div class="row" style="margin-top:16px"><button class="btn" onclick="go('play')">▶ Solo Play</button><button class="btn" onclick="go('market')">🛒 Market</button><button class="btn" onclick="go('rooks')">🏰 My Rooks</button></div>
     <div class="tiles">
-      <div class="tile" style="background:linear-gradient(135deg,#e63940,#f77f00)" onclick="go('rooks')"><span>🏰</span><b>${owned} / ${ROOKS.length} Rooks</b>collected</div>
+      <div class="tile" style="background:linear-gradient(135deg,#e63940,#f77f00)" onclick="go('rooks')"><span>🏰</span><b>${owned} / ${visibleRooks().length} Rooks</b>collected</div>
       <div class="tile" style="background:linear-gradient(135deg,#7c3aed,#ec4899)" onclick="go('market')"><span>⭐</span><b>Weekly special</b>${esc(sp.rook)} + ${esc(sp.box)} Box on sale</div>
       <div class="tile" style="background:linear-gradient(135deg,#0369a1,#2a9d8f)" onclick="go('trade')"><span>🔁</span><b>Trade Rooks</b>with other players</div>
     </div></div>`;
@@ -619,8 +660,8 @@ function chooseMode(i){
 let G=null, qTimer=null, gTimer=null;
 function stopTimers(){ clearInterval(qTimer); clearInterval(gTimer); qTimer=gTimer=null; }
 const rand=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-// Tokens = questions right × questions in the set (e.g. 2 right in a 5-question set = 10)
-const reward=(correct,set)=>correct*((set&&set.qs&&set.qs.length)||0);
+// Tokens = questions in the set + questions right (e.g. 2 right in a 5-question set = 7)
+const reward=(correct,set)=>((set&&set.qs&&set.qs.length)||0)+correct;
 function startGame(i,mode){
   closeModal(); stopTimers();
   const set=allSets()[i];
@@ -771,14 +812,14 @@ function market(){
     <div class="boxes">${BOXES.map((b,i)=>{ const st=boxStatus(b), price=boxPrice(b,sp);
       return `<div class="box ${st.ok?"":"soon"}" style="background:linear-gradient(135deg,${b.c1},${b.c2})">
         ${sp.box===b.name&&st.ok?'<span class="sale">25% OFF</span>':""}${st.tag?`<span class="tag">${st.tag}</span>`:""}
-        <div class="ic">${b.ic}</div><h2>${b.name} Box</h2>
+        <div class="ic">${b.ic}</div><h2>${boxLabel(b.name)}</h2>
         <div class="minis">${ROOKS.filter(r=>r[5]===b.name).map(r=>rookSVG(r[0],30)).join("")}</div>
         ${st.ok?`<button class="btn" onclick="buy(${i})">🪙 ${price}${price<b.price?` <s>${b.price}</s>`:""}</button>`:`<button class="btn" disabled>🔒 Locked</button>`}</div>`; }).join("")}</div>
-    <h2 style="margin-top:22px">Odds</h2><p class="muted">${RARITIES.map(k=>`<span class="rar ${k}">${k}</span> ${RARITY_ODDS[k]}%`).join(" · ")}<br>Any box can drop a super-rare Chroma Rook!</p></div>`;
+    <h2 style="margin-top:22px">Odds</h2><p class="muted">${RARITIES.filter(k=>RARITY_ODDS[k]).map(k=>`<span class="rar ${k}">${k}</span> ${RARITY_ODDS[k]}%`).join(" · ")}<br>Any box can drop a super-rare Chroma Rook!<br><b>Rook Pack:</b> <span class="rar Unique">Unique</span> 0.012%</p></div>`;
 }
 function reveal(name,isNew,extraBtns){
   const rar=R[name][1];
-  if(["Epic","Legendary","Chroma"].includes(rar)||isNew) confetti();
+  if(["Epic","Legendary","Chroma","Unique","Mystical"].includes(rar)||isNew) confetti();
   showModal(`<div class="reveal ${rar} pop">${rookSVG(name,150)}</div><h2>${esc(name)}</h2>
     <div class="rar ${rar}" style="font-size:18px">${rar}</div><p style="margin:8px 0">${isNew?"🎉 NEW ROOK!":"You have "+S.owned[name]}</p>
     <div class="row">${extraBtns||""}<button class="btn" onclick="closeModal();market()">Done</button></div>`);
@@ -789,7 +830,8 @@ function buy(i){
   if(S.tokens<price) return showModal(`<div style="font-size:60px">😢</div><h2>Not enough tokens</h2><p>Play games to earn more!</p><br><button class="btn red" onclick="go('play')">Play</button>`);
   S.tokens-=price;
   let roll=Math.random()*100, rar="Common";
-  for(const k of RARITIES){ if(roll<RARITY_ODDS[k]){rar=k;break;} roll-=RARITY_ODDS[k]; }
+  const odds=boxOdds(b);
+  for(const k of RARITIES){ if(!odds[k]) continue; if(roll<odds[k]){rar=k;break;} roll-=odds[k]; }
   let pool=ROOKS.filter(r=>r[1]===rar&&(r[5]===b.name||(rar==="Chroma"&&r[5]==="Any")));
   if(!pool.length) pool=ROOKS.filter(r=>r[5]===b.name&&r[1]==="Common");
   const got=pool[rand(0,pool.length-1)][0], isNew=!S.owned[got];
@@ -809,11 +851,12 @@ function buySpecial(){
 // ====================================================================
 function extrasValue(){ return Object.entries(S.owned).reduce((t,[k,v])=>t+(v-1)*SELL[R[k][1]],0); }
 function rooks(){
-  const groups=[...BOXES.map(b=>({name:b.name,ic:b.ic})),{name:"Any",ic:"🌈",label:"Chroma"}], ev=extrasValue();
-  app.innerHTML=`<div class="card fade"><div class="playtop"><div><h1>My Rooks</h1><p class="muted">${Object.keys(S.owned).length} / ${ROOKS.length} collected · tap a Rook to equip, sell or trade</p></div>
+  const groups=[...BOXES.map(b=>({name:b.name,ic:b.ic,label:boxLabel(b.name)})),{name:"Any",ic:"🌈",label:"Chroma"},...(S.owned[SECRET]?[{name:"Sacrifice",ic:"🕶️",label:"???"}]:[])], ev=extrasValue();
+  app.innerHTML=`<div class="card fade"><div class="playtop"><div><h1>My Rooks</h1><p class="muted">${Object.keys(S.owned).length} / ${visibleRooks().length} collected · tap a Rook to equip, sell or trade</p></div>
     <button class="btn red" ${ev?"":"disabled"} onclick="sellAllExtras()">Sell all extras · keep 1 each (+🪙${ev})</button></div><br>
     ${groups.map(g=>{ const rs=ROOKS.filter(r=>r[5]===g.name), have=rs.filter(r=>S.owned[r[0]]).length;
-      return `<div class="boxhead"><h2 style="margin:0">${g.ic} ${g.label||g.name}</h2><span class="muted">${have}/${rs.length}</span></div>
+      const full=g.name==="Rook Pack"&&have===rs.length;
+      return `<div class="boxhead"><h2 style="margin:0">${g.ic} ${g.label||g.name}</h2><span class="muted">${have}/${rs.length}</span>${full?`<button class="btn sacrifice" onclick="sacrificeAsk()">🔥 Sacrifice</button>`:""}</div>
       <div class="grid">${rs.map(r=>{ const n=S.owned[r[0]]||0;
         return `<div class="rook ${r[1]} ${n?"":"locked"} ${S.equipped===r[0]?"equipped":""}" ${n?`onclick="rookInfo('${r[0]}')"`:""}>
           ${n>1?`<span class="count">×${n}</span>`:""}${rookSVG(r[0],84)}<div class="name">${n?esc(r[0]):"???"}</div><div class="rar ${r[1]}">${r[1]}</div></div>`; }).join("")}</div>`; }).join("")}</div>`;
@@ -821,7 +864,7 @@ function rooks(){
 function rookInfo(name){
   const [,rar,,,,box]=R[name], n=S.owned[name]||0; if(!n) return rooks();
   showModal(`<div class="reveal ${rar}">${rookSVG(name,140)}</div><h2>${esc(name)}</h2><div class="rar ${rar}">${rar}</div>
-    <p class="muted">${box==="Any"?"Chroma":box+" Box"} · You own ${n} · Sells for 🪙${SELL[rar]}</p><br>
+    <p class="muted">${boxLabel(box)} · You own ${n} · Sells for 🪙${SELL[rar]}</p><br>
     <div class="row">
       <button class="btn red" onclick="S.equipped='${name}';save();closeModal();rooks()">${S.equipped===name?"Equipped ✓":"Equip"}</button>
       ${n>1?`<button class="btn" onclick="sellOne('${name}')">Sell 1 (+🪙${SELL[rar]})</button><button class="btn" onclick="sellExtras('${name}')">Sell extras · keep 1 (+🪙${SELL[rar]*(n-1)})</button>`:""}
@@ -830,6 +873,25 @@ function rookInfo(name){
 }
 function sellOne(name){ if((S.owned[name]||0)<2) return; S.owned[name]--; S.tokens+=SELL[R[name][1]]; save(); toast(`Sold 1 ${name} 🪙`,"good"); rooks(); rookInfo(name); }
 function sellExtras(name){ const n=S.owned[name]||0; if(n<2) return; S.tokens+=SELL[R[name][1]]*(n-1); S.owned[name]=1; save(); toast(`Sold ${n-1} ${name} 🪙`,"good"); rooks(); rookInfo(name); }
+function sacrificeAsk(){
+  const pack=ROOKS.filter(r=>r[5]==="Rook Pack");
+  if(!pack.every(r=>S.owned[r[0]])) return rooks();
+  showModal(`<div style="font-size:60px">🔥</div><h2>Sacrifice?</h2>
+    <div class="row" style="gap:2px;margin:10px 0">${pack.map(r=>rookSVG(r[0],40)).join("")}</div>
+    <p>One of each will be gone forever.</p><br>
+    <div class="row"><button class="btn sacrifice" onclick="sacrifice()">🔥 Sacrifice</button><button class="btn" onclick="closeModal()">Cancel</button></div>`);
+}
+function sacrifice(){
+  const pack=ROOKS.filter(r=>r[5]==="Rook Pack");
+  if(!pack.every(r=>S.owned[r[0]])) return closeModal();
+  pack.forEach(r=>takeR(r[0])); addR(SECRET); save();
+  document.getElementById("modal").innerHTML=`<div class="modal" style="background:#000"><div class="card void" style="text-align:center">
+    <div class="shake" style="font-size:90px">🔥</div><p style="opacity:.7">…</p></div></div>`;
+  setTimeout(()=>{ confetti();
+    document.getElementById("modal").innerHTML=`<div class="modal" style="background:rgba(0,0,0,.92)"><div class="card void pop" style="text-align:center">
+      <div class="reveal Mystical">${rookSVG(SECRET,170)}</div><h1 style="margin-top:10px">THE ROOK</h1><div class="rar Mystical" style="font-size:20px">Mystical</div><br>
+      <div class="row"><button class="btn red" onclick="S.equipped='${SECRET}';save();closeModal();rooks()">Equip</button><button class="btn" onclick="closeModal();rooks()">Close</button></div></div></div>`; },2200);
+}
 function sellAllExtras(){ const v=extrasValue(); if(!v) return;
   showModal(`<h2>Sell all extras?</h2><p>You'll keep 1 of every Rook and get <b>🪙${v}</b>.</p><br>
     <div class="row"><button class="btn red" onclick="for(const k in S.owned)S.owned[k]=1;S.tokens+=${v};save();closeModal();confetti();rooks()">Sell</button><button class="btn" onclick="closeModal()">Cancel</button></div>`); }
@@ -840,16 +902,50 @@ function sellAllExtras(){ const v=extrasValue(); if(!v) return;
 function addR(n){ S.owned[n]=(S.owned[n]||0)+1; }
 function takeR(n){ if(!S.owned[n]) return false; if(--S.owned[n]<=0){ delete S.owned[n]; if(S.equipped===n) S.equipped=Object.keys(S.owned)[0]||"Pebble"; } return true; }
 const snap=()=>JSON.parse(JSON.stringify(S));
+let MYPREFS={tradeMode:"anyone",allow:[]}, searchT=null;
 function trade(give){
   const mine=Object.keys(S.owned);
-  app.innerHTML=`<div class="card fade"><h1>🔁 Trade</h1><p class="muted">Send an offer to any player. Your Rook is held until they accept, decline, or you cancel.</p><br>
+  app.innerHTML=`<div class="card fade"><h1>🔁 Trade</h1><p class="muted">Send an offer to a player. Your Rook is held until they accept, decline, or you cancel.</p><br>
     <div class="tform">
-      <label>Player's username<input id="t_to" maxlength="15" placeholder="e.g. George"></label>
-      <label>You give<select id="t_give">${mine.map(n=>`<option ${n===give?"selected":""}>${esc(n)}</option>`).join("")}</select></label>
-      <label>You want<select id="t_want"><option value="">🎁 Nothing — it's a gift</option>${RARITIES.map(rr=>`<optgroup label="${rr}">${ROOKS.filter(r=>r[1]===rr).map(r=>`<option>${esc(r[0])}</option>`).join("")}</optgroup>`).join("")}</select></label>
+      <label>🔍 Find a player<div class="tsearch"><input id="t_to" maxlength="15" placeholder="Start typing a name…" autocomplete="off" oninput="findPlayers(this.value)" onblur="setTimeout(()=>{const s=document.getElementById('t_sugg');if(s)s.innerHTML=''},200)"><div class="sugg" id="t_sugg"></div></div></label>
+      <label>🔍 You give<input id="t_give" list="dl_mine" placeholder="Search your Rooks…" value="${esc(give&&S.owned[give]?give:"")}" autocomplete="off"></label>
+      <label>🔍 You want <span class="small" style="font-weight:400">(leave empty for a 🎁 gift)</span><input id="t_want" list="dl_all" placeholder="Search all Rooks…" autocomplete="off"></label>
       <button class="btn red" id="t_send" onclick="sendOffer()">Send</button>
-    </div><br><div id="tlist"><p class="loading">Loading trades…</p></div></div>`;
+    </div>
+    <datalist id="dl_mine">${mine.map(n=>`<option value="${esc(n)}">${R[n][1]}${S.owned[n]>1?" ×"+S.owned[n]:""}</option>`).join("")}</datalist>
+    <datalist id="dl_all">${visibleRooks().map(r=>`<option value="${esc(r[0])}">${r[1]} · ${boxLabel(r[5])}</option>`).join("")}</datalist>
+    <div class="prefs" id="prefs"><b>📬 Who can send me trades?</b><span class="muted small">Loading…</span></div>
+    <br><div id="tlist"><p class="loading">Loading trades…</p></div></div>`;
+  loadPrefs();
   settleTrades().then(renderTrades);
+}
+function findPlayers(v){
+  clearTimeout(searchT); const box=document.getElementById("t_sugg"); v=v.trim();
+  if(v.length<1){ box.innerHTML=""; return; }
+  searchT=setTimeout(async()=>{
+    let list=[]; try{ list=(await FB.searchUsers(v)).filter(u=>u.uid!==UID); }catch(e){}
+    if(document.getElementById("t_to").value.trim()!==v) return;
+    box.innerHTML=list.length?list.map(u=>`<div onmousedown="t_to.value='${esc(u.name)}';t_sugg.innerHTML=''"><span>👤 ${esc(u.name)}</span><span class="muted small">${u.tradeMode==="none"?"🔒 not trading":u.tradeMode==="some"?"⭐ friends only":"✅ open"}</span></div>`).join(""):`<div class="muted">No players found</div>`;
+  },250);
+}
+async function loadPrefs(){
+  try{ const me=await FB.lookup(NAME()); if(me) MYPREFS={tradeMode:me.tradeMode||"anyone",allow:me.allow||[]}; }catch(e){}
+  renderPrefs();
+}
+function renderPrefs(){
+  const el=document.getElementById("prefs"); if(!el) return; const m=MYPREFS.tradeMode;
+  el.innerHTML=`<b>📬 Who can send me trades?</b>
+    <div class="opts">${[["anyone","🌍 Anyone"],["some","⭐ Only these people"],["none","🔒 No one"]].map(([v,l])=>`<label><input type="radio" name="tm" value="${v}" ${m===v?"checked":""} onchange="MYPREFS.tradeMode=this.value;renderPrefs()">${l}</label>`).join("")}</div>
+    ${m==="some"?`<input id="p_allow" placeholder="Usernames, separated by commas (e.g. George, Kabir)" value="${esc((MYPREFS.allow||[]).join(", "))}">`:""}
+    <div><button class="btn small red" id="p_save" onclick="savePrefs()">Save</button></div>`;
+}
+async function savePrefs(){
+  const mode=MYPREFS.tradeMode;
+  const allow=mode==="some"?[...new Set((document.getElementById("p_allow").value||"").split(/[,\s]+/).map(s=>s.trim().toLowerCase()).filter(s=>/^[a-z0-9_]{3,15}$/.test(s)))].slice(0,50):[];
+  p_save.disabled=true;
+  try{ await FB.setTradePrefs(NAME(),mode,allow); MYPREFS={tradeMode:mode,allow}; toast(mode==="none"?"🔒 No one can send you trades now":mode==="some"?`⭐ Only ${allow.length} people can send you trades`:"🌍 Anyone can send you trades","good"); }
+  catch(e){ toast("Couldn't save — make sure the newest Firebase rules are published"); }
+  renderPrefs();
 }
 function tradeRow(t,buttons){
   return `<div class="offer"><div class="what">${t.from===UID?`To <b>${esc(t.toName)}</b>: you give`:`<b>${esc(t.fromName)}</b> gives you`}
@@ -865,16 +961,20 @@ function renderTrades(){
     ${past.length?`<h2 style="margin-top:18px">🕘 Recent</h2>${past.map(t=>tradeRow(t,`<span class="muted small">${word[t.status]||t.status}</span>`)).join("")}`:""}`;
 }
 async function sendOffer(){
-  const to=t_to.value.trim(), give=t_give.value, want=t_want.value||null;
+  const to=t_to.value.trim(), give=t_give.value.trim(), want=t_want.value.trim()||null;
   if(!to) return toast("Type a username");
   if(to.toLowerCase()===NAME().toLowerCase()) return toast("You can't trade with yourself 😄");
-  if(!S.owned[give]) return toast("Pick a Rook you own");
+  if(!S.owned[give]) return toast("Pick a Rook you own to give");
+  if(want&&(!R[want]||(want===SECRET&&!S.owned[SECRET]))) return toast(`There's no Rook called "${want}"`);
   t_send.disabled=true;
   let u=null; try{ u=await FB.lookup(to); }catch(e){}
   if(!u){ t_send.disabled=false; return toast(`No player named "${to}"`); }
+  const mode=u.tradeMode||"anyone";
+  if(mode==="none"||(mode==="some"&&!(u.allow||[]).includes(NAME().toLowerCase()))){ t_send.disabled=false;
+    return toast(mode==="none"?`🔒 ${u.name} isn't accepting trades`:`⭐ ${u.name} only accepts trades from certain people`); }
   const before=snap(); takeR(give);
-  try{ await FB.offer(UID,S,{from:UID,fromName:NAME(),to:u.uid,toName:u.name,give,want}); toast(`Offer sent to ${u.name}!`,"good"); }
-  catch(e){ S=before; toast("Couldn't send — try again"); }
+  try{ await FB.offer(UID,S,{from:UID,fromName:NAME(),fromKey:NAME().toLowerCase(),to:u.uid,toName:u.name,toKey:u.name.toLowerCase(),give,want}); toast(`Offer sent to ${u.name}!`,"good"); }
+  catch(e){ S=before; toast(String(e&&e.code).includes("permission")?`${u.name} isn't accepting trades from you`:"Couldn't send — try again"); }
   save(); trade();
 }
 async function respond(id,accept){
