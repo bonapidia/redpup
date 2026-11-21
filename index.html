@@ -630,7 +630,7 @@ function boot(){ if(booted) return; booted=true;
         if(needSave||!S.rev) await writeNow();
         startUserWatch();
         FB.ensureUsername(UID,S.name).catch(()=>{});
-        await afterLogin(); settleTrades(true); offerGuestMerge(); }
+        await afterLogin(); settleTrades(true); offerGuestMerge(); checkTestLink(); }
       else loginScreen();
     });
   } else loginScreen();
@@ -970,7 +970,7 @@ function redpupTest(){
     const bar=document.createElement("div"); bar.id="testbar";
     bar.innerHTML=`<b>🧪 TEST MODE</b> <span>nothing is saved</span>
       <button onclick="testView(true)">👩‍🏫 Teacher view</button><button onclick="testView(false)">🎒 Student view</button>
-      <button onclick="testGive()">➕ Refill Rooks & tokens</button><button onclick="location.reload()">✖ Exit</button>`;
+      <button onclick="testGive()">➕ Refill Rooks & tokens</button><button onclick="exitTest()">✖ Exit</button>`;
     document.body.appendChild(bar);
   }
   testView(TEACHER);
@@ -982,10 +982,14 @@ function testView(teacher){
   TEACHER=!!teacher;
   document.getElementById("nav").innerHTML=(TEACHER?`<button onclick="go('host')">🎤 Host</button><button onclick="go('create')">✏️ Create</button>`:`<button onclick="go('join')">🔑 Join</button>`)+
     `<button onclick="go('play')">▶ Solo</button><button onclick="go('market')">🛒 Market</button><button onclick="go('rooks')">🏰 Rooks</button><button onclick="go('trade')">🔁 Trade</button>`;
-  userchip.innerHTML=`<button class="acct" onclick="accountModal()">👤 ${esc(NAME())}</button>${TEACHER?' <span class="badge">TEACHER</span>':' <span class="badge" style="background:#93c5fd">STUDENT</span>'} <button onclick="location.reload()">Exit test</button>`;
+  userchip.innerHTML=`<button class="acct" onclick="accountModal()">👤 ${esc(NAME())}</button>${TEACHER?' <span class="badge">TEACHER</span>':' <span class="badge" style="background:#93c5fd">STUDENT</span>'} <button onclick="exitTest()">Exit test</button>`;
   go("home"); toast(TEACHER?"🧪 Viewing as a teacher":"🧪 Viewing as a student");
 }
 window.redpupTest=redpupTest;
+function exitTest(){ try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){} location.reload(); }
+// open test mode from the secret link (404.html checks it, then sets this flag)
+function checkTestLink(){ let go=false; try{ go=sessionStorage.getItem("redpup_test_go")==="1"; }catch(e){}
+  if(go&&S&&MODE==="fb"&&!TEST){ try{ sessionStorage.removeItem("redpup_test_go"); }catch(e){} redpupTest(); } }
 function toggleSound(){ const m=Music.toggle(); const b=document.getElementById("snd"); if(b) b.textContent=m?"🔇":"🔊"; }
 
 // ====================================================================
