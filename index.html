@@ -159,6 +159,37 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   .reveal.Unique{box-shadow:0 0 60px #facc15,0 0 20px #000}.reveal.Mystical{box-shadow:0 0 80px #a855f7,0 0 30px #000;background:#18181b}
   .sacrifice{background:linear-gradient(135deg,#7f1d1d,#0a0a0a);color:#fff;border-color:#000;box-shadow:0 4px 0 #000;animation:bob 1.6s infinite}
   .void{background:radial-gradient(circle,#2e1065,#000);color:#fff;border-color:#000}
+  /* ---- THE ROOK cinematic ---- */
+  .cine{position:fixed;inset:0;z-index:40;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;animation:fade 1.2s}
+  .cine .bar{position:absolute;left:0;right:0;height:9vh;background:#000;z-index:5}
+  .cine .bar.t{top:0}.cine .bar.b{bottom:0}
+  .cine .stage{position:relative;width:min(88vw,62vh);aspect-ratio:1;transition:filter 1.4s}
+  .cine .cboard{position:absolute;inset:0;display:grid;grid-template-columns:repeat(8,1fr);border-radius:6px;overflow:hidden;box-shadow:0 0 60px rgba(168,85,247,.25)}
+  .cine .cboard div:nth-child(odd){background:#3b2a2c}.cine .cboard div:nth-child(even){background:#1c1213}
+  .cine .cboard div.alt:nth-child(odd){background:#1c1213}.cine .cboard div.alt:nth-child(even){background:#3b2a2c}
+  .cine .pc{position:absolute;width:12.5%;height:12.5%;display:flex;align-items:center;justify-content:center;transition:left 1.1s cubic-bezier(.6,0,.4,1),top 1.1s cubic-bezier(.6,0,.4,1),transform .6s,opacity .5s;z-index:2}
+  .cine .pc svg{width:92%;height:92%}
+  .cine .wp{color:#f5f5f4;font-size:min(7vw,5vh);text-shadow:0 2px 0 #000,0 0 10px rgba(255,255,255,.3);line-height:1}
+  .cine .king{font-size:min(9vw,6.4vh);transform-origin:50% 90%;transition:transform 1.4s cubic-bezier(.5,0,.6,1)}
+  .cine .king.tip{transform:rotate(90deg) translate(10%,-10%)}
+  .cine .king.fear{animation:shake .12s infinite}
+  .cine .dim{position:absolute;inset:0;pointer-events:none;z-index:3;opacity:0;transition:opacity 1.6s,background 2.4s;background:radial-gradient(circle at 81% 94%,transparent 0 10%,rgba(0,0,0,.9) 24%)}
+  .cine .dim.up{background:radial-gradient(circle at 81% 6%,transparent 0 16%,rgba(0,0,0,.85) 34%)}
+  .cine .shk{animation:bigshake .45s}
+  @keyframes bigshake{0%,100%{transform:translate(0)}20%{transform:translate(-8px,5px)}40%{transform:translate(7px,-6px)}60%{transform:translate(-5px,-3px)}80%{transform:translate(4px,6px)}}
+  .cine .shk2{animation:bigshake .8s 2}
+  .cine .frag{position:absolute;width:1.6%;height:1.6%;z-index:4;transition:transform 1.2s cubic-bezier(.1,.7,.3,1),opacity 1.2s;pointer-events:none}
+  .cine .fire{position:absolute;z-index:4;font-size:min(8vw,5.5vh);transform:translate(-50%,-50%) scale(.2);transition:transform .5s,opacity .9s;pointer-events:none}
+  .cine .cap{position:absolute;bottom:11vh;left:0;right:0;text-align:center;color:#e4e4e7;font-size:min(4.4vw,22px);letter-spacing:3px;z-index:6;opacity:0;transition:opacity .9s;font-weight:600;text-shadow:0 2px 8px #000}
+  .cine .mate{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:7;pointer-events:none}
+  .cine .mate span{font-size:min(13vw,10vh);font-weight:800;color:#e63940;letter-spacing:4px;text-shadow:0 0 30px #000,0 6px 0 #2a1215;transform:scale(4) rotate(-8deg);opacity:0;transition:transform .35s cubic-bezier(.2,1.6,.4,1),opacity .2s}
+  .cine .mate span.on{transform:scale(1) rotate(-8deg);opacity:1}
+  .cine .flash{position:absolute;inset:0;background:#fff;opacity:0;z-index:8;pointer-events:none;transition:opacity .15s}
+  .cine .skip{position:absolute;top:calc(9vh + 10px);right:14px;z-index:9;font:inherit;font-size:14px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:5px 12px;cursor:pointer}
+  .cine .theRook .shades{transform:translateY(-46px);opacity:0;transition:transform 1.3s cubic-bezier(.5,0,.3,1),opacity .4s}
+  .cine .theRook.cool .shades{transform:none;opacity:1}
+  .cine .theRook{z-index:5;transition:left 2.6s cubic-bezier(.7,0,.2,1),top 2.6s cubic-bezier(.7,0,.2,1),transform .25s;filter:drop-shadow(0 0 6px #e9d5ff) drop-shadow(0 0 16px #a855f7)}
+  .cine .king{z-index:5}
   .reveal{border-radius:50%;display:inline-block;padding:10px}
   .reveal.Rare{box-shadow:0 0 40px #60a5fa}.reveal.Epic{box-shadow:0 0 50px #c084fc}.reveal.Legendary{box-shadow:0 0 60px #fb923c}.reveal.Chroma{box-shadow:0 0 70px #f0abfc,0 0 30px #67e8f9}
 
@@ -433,7 +464,7 @@ function rookSVG(name,size=90,cls=""){
     <ellipse cx="50" cy="93" rx="30" ry="5" fill="rgba(0,0,0,.15)"/>
     <path d="M22 18h12v8h8v-8h16v8h8v-8h12v22l-6 6v30h8v12H20V76h8V46l-6-6z" fill="${fill}" stroke="${acc}" stroke-width="3" stroke-linejoin="round"/>
     <rect x="20" y="40" width="60" height="5" fill="${acc}" opacity=".5"/>
-    ${shades?`<g shape-rendering="crispEdges">
+    ${shades?`<g class="shades" shape-rendering="crispEdges">
       <path d="M22 49H78V54H22Z M25 54H48V60H45V63H42V66H31V63H28V60H25Z M52 54H75V60H72V63H69V66H58V63H55V60H52Z" fill="#000" stroke="#e4e4e7" stroke-width="1.6"/>
       <rect x="29" y="55" width="4" height="3" fill="#fff"/><rect x="33" y="58" width="3" height="3" fill="#fff"/>
       <rect x="56" y="55" width="4" height="3" fill="#fff"/><rect x="60" y="58" width="3" height="3" fill="#fff"/></g>
@@ -1087,13 +1118,92 @@ function sacrificeAsk(){
 function sacrifice(){
   const pack=ROOKS.filter(r=>r[5]==="Rook Pack");
   if(!pack.every(r=>S.owned[r[0]])) return closeModal();
-  pack.forEach(r=>takeR(r[0])); addR(SECRET); save();
-  document.getElementById("modal").innerHTML=`<div class="modal" style="background:#000"><div class="card void" style="text-align:center">
-    <div class="shake" style="font-size:90px">🔥</div><p style="opacity:.7">…</p></div></div>`;
-  setTimeout(()=>{ confetti();
-    document.getElementById("modal").innerHTML=`<div class="modal" style="background:rgba(0,0,0,.92)"><div class="card void pop" style="text-align:center">
-      <div class="reveal Mystical">${rookSVG(SECRET,170)}</div><h1 style="margin-top:10px">THE ROOK</h1><div class="rar Mystical" style="font-size:20px">Mystical</div><br>
-      <div class="row"><button class="btn red" onclick="S.equipped='${SECRET}';save();closeModal();rooks()">Equip</button><button class="btn" onclick="closeModal();rooks()">Close</button></div></div></div>`; },2200);
+  pack.forEach(r=>takeR(r[0])); addR(SECRET); save();   // the trade is saved first, so skipping or closing can't lose it
+  closeModal();
+  lastStand(pack.map(r=>r[0])).then(revealTheRook);
+}
+function revealTheRook(){
+  confetti();
+  document.getElementById("modal").innerHTML=`<div class="modal" style="background:rgba(0,0,0,.92)"><div class="card void pop" style="text-align:center">
+    <div class="reveal Mystical">${rookSVG(SECRET,170)}</div><h1 style="margin-top:10px">THE ROOK</h1><div class="rar Mystical" style="font-size:20px">Mystical</div><br>
+    <div class="row"><button class="btn red" onclick="S.equipped='${SECRET}';save();closeModal();rooks()">Equip</button><button class="btn" onclick="closeModal();rooks()">Close</button></div></div></div>`;
+}
+// "The Last Stand" — 8 Rooks sacrifice themselves, then THE ROOK checkmates White's king (~18s)
+function lastStand(names){
+  return new Promise(done=>{
+    let skipped=false, finished=false;
+    const end=()=>{ if(finished) return; finished=true; el.style.transition="opacity .6s"; el.style.opacity=0; setTimeout(()=>{ el.remove(); done(); },600); };
+    const wait=ms=>new Promise(r=>setTimeout(r,ms));
+    const el=document.createElement("div"); el.className="cine";
+    const pos=(r,c)=>`left:${c*12.5}%;top:${r*12.5}%`;
+    const wGlyph=["♖","♘","♗","♕","♗","♘","♖","♙"];
+    el.innerHTML=`<div class="bar t"></div><div class="bar b"></div>
+      <div class="stage" id="cs"><div class="cboard">${[...Array(64)].map((_,i)=>`<div class="${Math.floor(i/8)%2?"alt":""}"></div>`).join("")}</div>
+        ${wGlyph.map((g,c)=>`<div class="pc wp" id="w${c}" style="${pos(1,c)}">${g}</div>`).join("")}
+        <div class="pc wp king" id="wk" style="${pos(0,7)}">♔</div>
+        ${names.map((n,c)=>`<div class="pc" id="b${c}" style="${pos(6,c)}">${rookSVG(n,60)}</div>`).join("")}
+        <div class="pc theRook" id="tr" style="${pos(-3,6)};transform:scale(1.3);opacity:0">${rookSVG(SECRET,60)}</div>
+        <div class="dim" id="dim"></div></div>
+      <div class="cap" id="cap"></div><div class="mate"><span id="mate">CHECKMATE</span></div><div class="flash" id="fl"></div>
+      <button class="skip">Skip ⏭</button>`;
+    document.body.appendChild(el);
+    el.querySelector(".skip").onclick=()=>{ skipped=true; end(); };
+    const $=id=>el.querySelector("#"+id), stage=$("cs");
+    const cap=async(t,ms)=>{ if(skipped) return; const c=$("cap"); c.style.opacity=0; await wait(400); c.textContent=t; c.style.opacity=1; if(ms){ await wait(ms); c.style.opacity=0; } };
+    const shake=(cls="shk")=>{ stage.classList.remove("shk","shk2"); void stage.offsetWidth; stage.classList.add(cls); };
+    const burst=(r,c,colors,n=14,spread=60)=>{ for(let i=0;i<n;i++){ const f=document.createElement("div"); f.className="frag";
+        f.style.left=(c*12.5+6.25)+"%"; f.style.top=(r*12.5+6.25)+"%"; f.style.background=colors[i%colors.length]; stage.appendChild(f);
+        requestAnimationFrame(()=>requestAnimationFrame(()=>{ const a=Math.random()*Math.PI*2, d=spread*(.4+Math.random()*.8);
+          f.style.transform=`translate(${Math.cos(a)*d}px,${Math.sin(a)*d}px) rotate(${Math.random()*540}deg)`; f.style.opacity=0; }));
+        setTimeout(()=>f.remove(),1400); } };
+    const fire=(r,c)=>{ const f=document.createElement("div"); f.className="fire"; f.textContent="🔥";
+        f.style.left=(c*12.5+6.25)+"%"; f.style.top=(r*12.5+6.25)+"%"; stage.appendChild(f);
+        requestAnimationFrame(()=>requestAnimationFrame(()=>{ f.style.transform="translate(-50%,-60%) scale(1.4)"; }));
+        setTimeout(()=>{ f.style.opacity=0; },500); setTimeout(()=>f.remove(),1500); };
+    (async()=>{
+      await wait(1000);
+      await cap("THE ROOK PACK MARCHES…",1400);
+      // 1) the sacrifice — one rook at a time
+      for(let c=0;c<8&&!skipped;c++){
+        const b=$("b"+c), w=$("w"+c);
+        b.style.top=(1*12.5)+"%";                       // rook moves straight up the file
+        await wait(900); if(skipped) break;
+        shake(); fire(1,c);
+        burst(1,c,[R[names[c]][2]==="checker"?"#fff":R[names[c]][2],R[names[c]][3],"#f5f5f4"]);
+        b.style.opacity=0; b.style.transform="scale(1.6)"; w.style.opacity=0; w.style.transform="scale(.3) rotate(40deg)";
+        if(c===3) cap("…NONE OF THEM CAME BACK.",0);
+        await wait(c<7?450:900);
+      }
+      if(skipped) return;
+      $("cap").style.opacity=0;
+      // 2) silence + spotlight
+      const k=$("wk"); k.classList.add("fear");
+      await wait(1200);
+      const d=$("dim"); d.style.opacity=1;
+      await cap("ONE ROOK REMAINS.",0); await wait(1500); if(skipped) return;
+      // 3) THE ROOK drops in
+      const t=$("tr"); t.style.transition="top .55s cubic-bezier(.7,0,1,.6),transform .25s"; t.style.opacity=1; t.style.top=(7*12.5)+"%";
+      await wait(560); if(skipped) return;
+      t.style.transform="scale(1.15,0.85)"; shake("shk2"); burst(7,6,["#52525b","#71717a","#a1a1aa","#3f3f46"],22,90);
+      $("fl").style.opacity=.35; setTimeout(()=>{ $("fl").style.opacity=0; },140);
+      await wait(250); t.style.transform="scale(1)";
+      $("cap").style.opacity=0; await wait(1100); if(skipped) return;
+      // 4) slow glide up the file toward the king
+      t.style.transition=""; t.style.top=(0*12.5)+"%"; d.style.opacity=.55;
+      await wait(2700); if(skipped) return;
+      d.classList.add("up"); d.style.opacity=1;
+      // 5) slow-mo beat… shades on
+      stage.style.filter="saturate(.6) contrast(1.2)";
+      await wait(700);
+      t.classList.add("cool"); await wait(1400); if(skipped) return;
+      // 6) CHECKMATE
+      $("fl").style.opacity=.8; setTimeout(()=>{ $("fl").style.opacity=0; },180);
+      $("mate").classList.add("on"); shake("shk2"); stage.style.filter="";
+      k.classList.remove("fear"); await wait(500); k.classList.add("tip");
+      await wait(2300);
+      end();
+    })();
+  });
 }
 function sellAllExtras(){ const v=extrasValue(); if(!v) return;
   showModal(`<h2>Sell all extras?</h2><p>You'll keep 1 of every Rook and get <b>🪙${v}</b>.</p><br>
