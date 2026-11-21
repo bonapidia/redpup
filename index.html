@@ -186,7 +186,10 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   .cine .shk2{animation:bigshake .8s 2}
   .cine .frag{position:absolute;width:1.6%;height:1.6%;z-index:4;transition:transform 1.2s cubic-bezier(.1,.7,.3,1),opacity 1.2s;pointer-events:none}
   .cine .fire{position:absolute;z-index:4;font-size:min(8vw,5.5vh);transform:translate(-50%,-50%) scale(.2);transition:transform .5s,opacity .9s;pointer-events:none}
-  .cine .cap{position:absolute;bottom:11vh;left:0;right:0;text-align:center;color:#e4e4e7;font-size:min(4.4vw,22px);letter-spacing:3px;z-index:6;opacity:0;transition:opacity .9s;font-weight:600;text-shadow:0 2px 8px #000}
+  .cine .cap{position:absolute;bottom:11vh;left:4%;right:4%;text-align:center;color:#f5f5f4;font-size:min(5.6vw,34px);letter-spacing:4px;text-transform:uppercase;z-index:6;opacity:0;transition:opacity .9s;font-weight:700;text-shadow:0 0 18px rgba(168,85,247,.55),0 3px 10px #000}
+  .cine .cap span{display:inline-block;opacity:0;animation:capIn .5s forwards}
+  @keyframes capIn{from{opacity:0;transform:translateY(8px);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}
+  .cine .cap.big{font-size:min(11vw,72px);letter-spacing:12px;color:#fff;text-shadow:0 0 30px #a855f7,0 0 60px #7c3aed,0 4px 12px #000}
   .cine .mate{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:7;pointer-events:none}
   .cine .mate span{font-size:min(13vw,10vh);font-weight:800;color:#e63940;letter-spacing:4px;text-shadow:0 0 30px #000,0 6px 0 #2a1215;transform:scale(4) rotate(-8deg);opacity:0;transition:transform .35s cubic-bezier(.2,1.6,.4,1),opacity .2s}
   .cine .mate span.on{transform:scale(1) rotate(-8deg);opacity:1}
@@ -945,6 +948,11 @@ const Music=(()=>{
     while(nextT<ctx.currentTime+.15){ cur.step(step,nextT,d); step++; nextT+=d; }
   }
   // ---- narrator (built-in text-to-speech) ----
+  const USE_VOICE=false;   // built-in computer voices sounded robotic — we use recorded lines instead
+  const NARR_LINES=["In a world where every Rook stood together…","The White army came for them.","They were surrounded.","One by one… they fell.",
+    "Not even the legends survived.","Not even the rarest.","But they forgot… about one Rook.","THE ROOK."];
+  const narrA={};
+  function narrAudio(i){ if(!narrA[i]){ const a=new Audio(`music/narr${i+1}.mp3`); a.preload="auto"; narrA[i]=a; } return narrA[i]; }
   let voice=null;
   function pickVoice(){
     try{ const vs=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang)); if(!vs.length) return;
@@ -971,16 +979,21 @@ const Music=(()=>{
     // speak a line; resolves when done (or after a guess if speech isn't available / muted)
     say(text,{rate=.82,pitch=.55}={}){
       return new Promise(res=>{
-        const guess=Math.max(1400,text.length*80)/rate, minShow=Math.max(1500,text.length*60)/rate, t0=Date.now();
+        const guess=Math.max(1400,text.length*80)/rate, minShow=Math.max(1500,text.length*55), t0=Date.now();
         let done=false; const fin=()=>{ if(done) return; const left=minShow-(Date.now()-t0); if(left>0) return setTimeout(fin,left); done=true; duck(false); res(); };
-        if(muted||!window.speechSynthesis){ setTimeout(fin,guess); return; }
+        const ni=NARR_LINES.indexOf(text);
+        if(ni>=0&&!muted){                                    // play the recorded line
+          try{ const a=narrAudio(ni); a.currentTime=0; a.volume=1; a.onended=fin; a.onerror=()=>setTimeout(fin,minShow);
+            duck(true); a.play().catch(()=>{ duck(false); setTimeout(fin,minShow); }); setTimeout(fin,15000); return; }catch(e){}
+        }
+        if(!USE_VOICE||muted||!window.speechSynthesis){ setTimeout(fin,minShow); return; }
         try{ const u=new SpeechSynthesisUtterance(text.replace(/…/g,"...")); if(voice) u.voice=voice; u.rate=rate; u.pitch=pitch; u.volume=1;
           u.onend=fin; u.onerror=fin; duck(true); speechSynthesis.speak(u); setTimeout(fin,guess+4000); }
         catch(e){ setTimeout(fin,guess); }
       });
     },
-    hush(){ try{ speechSynthesis.cancel(); }catch(e){} },
-    preloadCine(){ try{ cineAudio("build").load(); cineAudio("drop").load(); }catch(e){} },
+    hush(){ try{ speechSynthesis.cancel(); }catch(e){} Object.values(narrA).forEach(a=>{ try{ a.pause(); }catch(e){} }); },
+    preloadCine(){ try{ cineAudio("build").load(); cineAudio("drop").load(); NARR_LINES.forEach((_,i)=>narrAudio(i).load()); }catch(e){} },
     // play a cutscene clip; resolves true if it really started
     cine(k){ if(muted) return Promise.resolve(false);
       try{ const a=cineAudio(k); a._stopping=false; clearInterval(a._f); a.currentTime=0; a.volume=ducked?CINE_VOL*.35:CINE_VOL; a.muted=muted;
@@ -1408,8 +1421,9 @@ function lastStand(allNames){
         burst(p.x,p.y,["#57534e","#292524","#f97316","#78716c"],8,34); Music.sfx("fire"); };
 
     // narrator: shows the line and reads it out loud; resolves when finished
-    const say=async(t,opts)=>{ if(skipped) return; const c=$("cap"); c.style.opacity=0; await wait(250); if(skipped) return;
-      c.textContent=t; c.style.opacity=1; await Music.say(t,opts); };
+    const say=async(t,opts)=>{ if(skipped) return; const c=$("cap"); c.style.opacity=0; await wait(300); if(skipped) return;
+      c.innerHTML=[...t].map((ch,i)=>`<span style="animation-delay:${i*45}ms">${ch===" "?"&nbsp;":esc(ch)}</span>`).join("");
+      c.classList.toggle("big",t==="THE ROOK."); c.style.opacity=1; await Music.say(t,opts); };
     const hideCap=()=>{ $("cap").style.opacity=0; };
     (async()=>{
       Music.preloadCine();
