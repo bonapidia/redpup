@@ -859,7 +859,7 @@ async function logout(){
 //  MUSIC + SOUND — made live with the browser's synthesizer (no files)
 // ====================================================================
 const Music=(()=>{
-  let ctx=null, master=null, timer=null, cur=null, step=0, nextT=0, lvl=0, noiseBuf=null;
+  let ctx=null, master=null, bus=null, wet=null, timer=null, cur=null, step=0, nextT=0, lvl=0, noiseBuf=null;
   // ---- game soundtrack (real songs in the music/ folder) ----
   const SONGS=["music/night-out.mp3","music/hideout.mp3","music/sunflower.mp3"];
   let audio=null, songI=Math.floor(Math.random()*SONGS.length), fadeT=null;
@@ -876,82 +876,141 @@ const Music=(()=>{
     fadeT=setInterval(()=>{ a.volume=Math.max(0,a.volume-.05); if(a.volume<=0){ clearInterval(fadeT); a.pause(); } },40);
     songI=(songI+1)%SONGS.length;   // next game gets the next song
   }
+
   let muted=false; try{ muted=localStorage.getItem("redpup_muted")==="1"; }catch(e){}
   const hz=m=>440*Math.pow(2,(m-69)/12);
   function init(){
     try{
       if(!ctx){ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null;
-        ctx=new AC(); master=ctx.createGain(); master.gain.value=muted?0:.4; master.connect(ctx.destination);
-        noiseBuf=ctx.createBuffer(1,ctx.sampleRate,ctx.sampleRate); const d=noiseBuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; }
+        ctx=new AC(); master=ctx.createGain(); master.gain.value=muted?0:.45; master.connect(ctx.destination);
+        // "bus" = cinematic sounds, sent dry + through a big-hall reverb
+        bus=ctx.createGain(); bus.gain.value=1; bus.connect(master);
+        const conv=ctx.createConvolver(), len=ctx.sampleRate*3.2, ir=ctx.createBuffer(2,len,ctx.sampleRate);
+        for(let ch=0;ch<2;ch++){ const d=ir.getChannelData(ch); for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.6); }
+        conv.buffer=ir; wet=ctx.createGain(); wet.gain.value=.38; bus.connect(conv); conv.connect(wet); wet.connect(master);
+        noiseBuf=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate); const d=noiseBuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; }
       if(ctx.state==="suspended") ctx.resume();
     }catch(e){ return null; }
     return ctx;
   }
-  function tone(f,t,dur,type="square",vol=.1,glideTo=null,attack=.01){
+  function tone(f,t,dur,type="square",vol=.1,glideTo=null,attack=.01,dest){
     const o=ctx.createOscillator(), g=ctx.createGain(); o.type=type; o.frequency.setValueAtTime(f,t);
     if(glideTo) o.frequency.exponentialRampToValueAtTime(glideTo,t+dur);
     g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(vol,t+attack); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
-    o.connect(g); g.connect(master); o.start(t); o.stop(t+dur+.05);
+    o.connect(g); g.connect(dest||master); o.start(t); o.stop(t+dur+.05);
   }
-  function noise(t,dur,vol=.05,type="highpass",freq=6000){
+  function noise(t,dur,vol=.05,type="highpass",freq=6000,dest,sweepTo){
     const s=ctx.createBufferSource(), f=ctx.createBiquadFilter(), g=ctx.createGain(); s.buffer=noiseBuf;
-    f.type=type; f.frequency.value=freq; g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
-    s.connect(f); f.connect(g); g.connect(master); s.start(t); s.stop(t+dur+.05);
+    f.type=type; f.frequency.setValueAtTime(freq,t); if(sweepTo) f.frequency.exponentialRampToValueAtTime(sweepTo,t+dur);
+    g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    s.connect(f); f.connect(g); g.connect(dest||master); s.start(t); s.stop(t+dur+.05);
+  }
+  // warm "strings": 3 detuned saws through a soft low-pass, slow swell
+  function strings(m,t,dur,vol=.03,cut=1400){
+    const f=ctx.createBiquadFilter(), g=ctx.createGain(); f.type="lowpass"; f.frequency.value=cut; f.Q.value=.4;
+    g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(vol,t+Math.min(1,dur*.35)); g.gain.setValueAtTime(vol,t+dur*.75); g.gain.linearRampToValueAtTime(.0001,t+dur+.6);
+    f.connect(g); g.connect(bus);
+    [-8,0,7].forEach(dt=>{ const o=ctx.createOscillator(); o.type="sawtooth"; o.frequency.value=hz(m); o.detune.value=dt; o.connect(f); o.start(t); o.stop(t+dur+.7); });
   }
   const kick=(t,v=.5)=>tone(150,t,.18,"sine",v,40,.005);
-  const drum=(t,v=.5)=>{ tone(90,t,.45,"sine",v,45,.005); noise(t,.12,v*.25,"lowpass",900); };
+  // deep taiko-style drum
+  const taiko=(t,v=.6)=>{ tone(75,t,.8,"sine",v,38,.004,bus); tone(150,t,.12,"triangle",v*.4,70,.002,bus); noise(t,.18,v*.35,"lowpass",700,bus); };
+  // a scary-big "BRAAAM"
+  function braam(t){
+    const ws=ctx.createWaveShaper(), curve=new Float32Array(1024); for(let i=0;i<1024;i++){ const x=i/512-1; curve[i]=Math.tanh(x*3.2); } ws.curve=curve;
+    const f=ctx.createBiquadFilter(), g=ctx.createGain(); f.type="lowpass"; f.frequency.setValueAtTime(180,t); f.frequency.exponentialRampToValueAtTime(1500,t+.35); f.frequency.exponentialRampToValueAtTime(300,t+3);
+    g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.32,t+.04); g.gain.exponentialRampToValueAtTime(.0001,t+3.4);
+    ws.connect(f); f.connect(g); g.connect(bus);
+    [33,45,52,57].forEach((m,k)=>[-12,0,10].forEach(dt=>{ const o=ctx.createOscillator(); o.type="sawtooth"; o.frequency.value=hz(m); o.detune.value=dt+k; o.connect(ws); o.start(t); o.stop(t+3.5); }));
+    tone(110,t,2.2,"sine",.9,24,.003,master); noise(t,1.6,.45,"lowpass",420,bus);
+  }
 
   // ---- tracks ----
-  const CH=[[60,"maj"],[57,"min"],[53,"maj"],[55,"maj"]];   // C  Am  F  G
-  const LEAD=[72,74,76,79, 76,74,72,69, 72,74,76,77, 79,77,76,74];
+  const CH=[[60,"maj"],[57,"min"],[53,"maj"],[55,"maj"]];
+  const EPIC=[[45,[57,60,64]],[41,[57,60,65]],[48,[55,60,64]],[43,[55,59,62]]];   // Am – F – C – G
   const TRACKS={
-    game:{bpm:138,div:4,step(s,t,d){
-      const bar=Math.floor(s/16)%4, i=s%16, [root,q]=CH[bar], third=q==="min"?3:4, arp=[0,third,7,12];
-      if(i%4===0) tone(hz(root-24),t,d*3.5,"triangle",.16);
-      if(i%2===0) tone(hz(root+arp[(i/2)%4]),t,d*1.6,"square",.035);
-      if(i===0||i===8) kick(t,.35);
-      if(i===4||i===12) noise(t,.09,.05,"highpass",3000);
-      if(i%2===1) noise(t,.03,.018);
-      if(Math.floor(s/64)%2===1&&i%4===0) tone(hz(LEAD[(Math.floor(s/4))%16]),t,d*3.2,"square",.05);
-    }},
-    battle:{bpm:84,div:2,
-      start(){ const t=ctx.currentTime; this.nodes=[]; [33,40].forEach((m,k)=>{ const o=ctx.createOscillator(), f=ctx.createBiquadFilter(), g=ctx.createGain();
-          o.type="sawtooth"; o.frequency.value=hz(m); f.type="lowpass"; f.frequency.value=220; g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(k?.05:.08,t+2);
-          o.connect(f); f.connect(g); g.connect(master); o.start(t); this.nodes.push({o,g}); }); },
-      stop(){ const t=ctx.currentTime; (this.nodes||[]).forEach(n=>{ n.g.gain.cancelScheduledValues(t); n.g.gain.setValueAtTime(n.g.gain.value,t); n.g.gain.linearRampToValueAtTime(.0001,t+.25); n.o.stop(t+.3); }); this.nodes=[]; },
+    battle:{bpm:92,div:2,
       step(s,t,d){
-        const i=s%8;
-        if(i===0||i===4) drum(t,.55);
-        if(lvl>=1&&(i===3||i===7)) drum(t,.35);
-        if(lvl>=2&&i%2===1) drum(t,.22);
-        if(lvl>=4) noise(t,.05,.03,"highpass",4000);
-        if(i===0&&Math.floor(s/8)%2===0) tone(hz(lvl>=3?45:57),t,d*7,"sawtooth",.025,null,.4);
+        const i=s%8, bar=Math.floor(s/8)%4, [bass,chord]=EPIC[bar];
+        if(i===0){ strings(bass,t,d*8,.045,700); chord.forEach(m=>strings(m,t,d*8,.022,lvl>=3?2200:1300)); }
+        if(lvl>=1||s>=16){ if(i%1===0) tone(hz(bass+12),t,d*.7,"sawtooth",.028+lvl*.004,null,.004,bus); }      // driving ostinato
+        if(i===0||i===4) taiko(t,.55);
+        if(lvl>=1&&(i===3||i===7)) taiko(t,.35);
+        if(lvl>=3&&i%2===1) taiko(t,.25);
+        if(lvl>=4&&i===0&&bar%2===1) chord.concat(chord.map(m=>m+12)).forEach((m,k)=>tone(hz(m+12),t+k*d/4,d*.5,"triangle",.02,null,.005,bus));
       }},
   };
   function loop(){
     if(!cur) return; const d=60/cur.bpm/cur.div;
     while(nextT<ctx.currentTime+.15){ cur.step(step,nextT,d); step++; nextT+=d; }
   }
+  // ---- narrator (built-in text-to-speech) ----
+  let voice=null;
+  function pickVoice(){
+    try{ const vs=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang)); if(!vs.length) return;
+      const pref=["Google UK English Male","Daniel","Microsoft Guy","Microsoft David","Arthur","Alex","Fred","Aaron","Rishi","Google US English"];
+      voice=pref.map(n=>vs.find(v=>v.name.includes(n))).find(Boolean)||vs.find(v=>/male/i.test(v.name))||vs[0]; }catch(e){}
+  }
+  try{ pickVoice(); speechSynthesis.addEventListener("voiceschanged",pickVoice); }catch(e){}
+  // ---- cutscene song ("Royalty"): build-up clip + drop clip ----
+  const CINE={build:"music/royalty-build.mp3",drop:"music/royalty-drop.mp3"}, DROP_AT=2.37, CINE_VOL=.9;
+  const cineA={}; let ducked=false;
+  function cineAudio(k){ if(!cineA[k]){ const a=new Audio(CINE[k]); a.preload="auto"; cineA[k]=a; } return cineA[k]; }
+  function cineVol(a,target,ms){ clearInterval(a._f); const step=(target-a.volume)/Math.max(1,ms/40);
+    a._f=setInterval(()=>{ a.volume=Math.min(1,Math.max(0,a.volume+step)); if(Math.abs(a.volume-target)<=Math.abs(step)+.001){ a.volume=target; clearInterval(a._f); if(target===0) a.pause(); } },40); }
+  function duck(on){ ducked=on; if(ctx&&bus) bus.gain.setTargetAtTime(on?.45:1,ctx.currentTime,.15);
+    Object.values(cineA).forEach(a=>{ if(!a.paused&&!a._stopping) cineVol(a,on?CINE_VOL*.35:CINE_VOL,250); }); }
+
   return {
     init,
     get muted(){ return muted; },
     play(name){ if(name==="game"){ this.stop(); init(); playSongs(); return; }
-      if(!init()) return; this.stop(); cur=TRACKS[name]; step=0; lvl=0; nextT=ctx.currentTime+.06; if(cur.start) cur.start(); timer=setInterval(loop,40); },
+      if(!init()) return; this.stop(); cur=TRACKS[name]; step=0; lvl=0; TRACKS.battle.bpm=92; nextT=ctx.currentTime+.06; if(cur.start) cur.start(); timer=setInterval(loop,40); },
     stop(){ stopSongs(); clearInterval(timer); timer=null; if(cur&&cur.stop&&ctx) cur.stop(); cur=null; },
-    level(n){ lvl=n; if(cur===TRACKS.battle) TRACKS.battle.bpm=84+n*10; },
+    level(n){ lvl=n; if(cur===TRACKS.battle) TRACKS.battle.bpm=92+n*8; },
+    // speak a line; resolves when done (or after a guess if speech isn't available / muted)
+    say(text,{rate=.82,pitch=.55}={}){
+      return new Promise(res=>{
+        const guess=Math.max(1400,text.length*80)/rate, minShow=Math.max(1500,text.length*60)/rate, t0=Date.now();
+        let done=false; const fin=()=>{ if(done) return; const left=minShow-(Date.now()-t0); if(left>0) return setTimeout(fin,left); done=true; duck(false); res(); };
+        if(muted||!window.speechSynthesis){ setTimeout(fin,guess); return; }
+        try{ const u=new SpeechSynthesisUtterance(text.replace(/…/g,"...")); if(voice) u.voice=voice; u.rate=rate; u.pitch=pitch; u.volume=1;
+          u.onend=fin; u.onerror=fin; duck(true); speechSynthesis.speak(u); setTimeout(fin,guess+4000); }
+        catch(e){ setTimeout(fin,guess); }
+      });
+    },
+    hush(){ try{ speechSynthesis.cancel(); }catch(e){} },
+    preloadCine(){ try{ cineAudio("build").load(); cineAudio("drop").load(); }catch(e){} },
+    // play a cutscene clip; resolves true if it really started
+    cine(k){ if(muted) return Promise.resolve(false);
+      try{ const a=cineAudio(k); a._stopping=false; clearInterval(a._f); a.currentTime=0; a.volume=ducked?CINE_VOL*.35:CINE_VOL; a.muted=muted;
+        return a.play().then(()=>true).catch(()=>false); }catch(e){ return Promise.resolve(false); } },
+    cineStop(k,ms=900){ const ks=k?[k]:Object.keys(cineA); ks.forEach(x=>{ const a=cineA[x]; if(a&&!a.paused){ a._stopping=true; cineVol(a,0,ms); } }); },
+    // start the drop clip and resolve exactly when the beat drops (falls back to the synth riser)
+    dropSync(lead=0){ return new Promise(async res=>{
+        const ok=await this.cine("drop");
+        if(!ok){ this.sfx("riser"); setTimeout(()=>res(false),2350); return; }
+        const a=cineA.drop, t0=Date.now();
+        const tick=()=>{ if(a.currentTime>=DROP_AT-lead) return res(true); if(Date.now()-t0>7000) return res(true); requestAnimationFrame(tick); };
+        tick(); }); },
     sfx(name){
       if(!init()) return; const t=ctx.currentTime+.01;
-      if(name==="fire"){ noise(t,.35,.06,"bandpass",900); tone(220,t,.25,"sawtooth",.02,90); }
-      if(name==="bigfire"){ noise(t,1.4,.18,"lowpass",1400); tone(110,t,1.2,"sawtooth",.08,40); }
-      if(name==="slam"){ tone(130,t,1.6,"sine",.9,26,.003); tone(65,t,1.8,"triangle",.5,22,.003); noise(t,1.2,.5,"lowpass",500); noise(t,.25,.3,"highpass",1500); }
-      if(name==="shine"){ [1568,2093,2637].forEach((f,k)=>tone(f,t+k*.08,.5,"sine",.07)); }
-      if(name==="triumph"){ [[48,0],[55,0],[60,0],[64,0],[67,0],[72,.0]].forEach(([m])=>tone(hz(m),t,4.2,"sawtooth",.035,null,1.2));
-        [72,76,79,84,88,91,96].forEach((m,k)=>tone(hz(m),t+.4+k*.12,.6,"square",.035)); drum(t,.7); }
+      if(name==="fire"){ noise(t,.4,.05,"bandpass",900,bus,300); tone(220,t,.25,"sawtooth",.015,90,.01,bus); }
+      if(name==="bigfire"){ noise(t,2,.22,"lowpass",2400,bus,200); tone(110,t,1.6,"sawtooth",.07,35,.01,bus); taiko(t,.8); }
+      if(name==="riser"){ noise(t,2.6,.0001,"highpass",300,bus); const s=ctx.createBufferSource(), f=ctx.createBiquadFilter(), g=ctx.createGain();
+        s.buffer=noiseBuf; f.type="bandpass"; f.Q.value=3; f.frequency.setValueAtTime(200,t); f.frequency.exponentialRampToValueAtTime(5000,t+2.4);
+        g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.35,t+2.35); g.gain.setValueAtTime(.0001,t+2.42);
+        s.connect(f); f.connect(g); g.connect(bus); s.start(t); s.stop(t+2.5); tone(110,t,2.4,"sawtooth",.04,880,2.2,bus); }
+      if(name==="slam"){ braam(t); }
+      if(name==="impact"){ tone(110,t,1.8,"sine",.8,26,.003,master); noise(t,1.1,.35,"lowpass",450,bus); }
+      if(name==="shine"){ [1568,2093,2637,3136].forEach((f,k)=>tone(f,t+k*.07,.9,"sine",.06,null,.005,bus)); }
+      if(name==="triumph"){ [45,57,61,64,69,73,76].forEach(m=>strings(m,t,5,.03,2600)); taiko(t,.8); taiko(t+.5,.5);
+        [81,85,88,93].forEach((m,k)=>tone(hz(m),t+.6+k*.16,1.4,"triangle",.04,null,.005,bus)); }
       if(name==="win"){ [72,76,79,84].forEach((m,k)=>tone(hz(m),t+k*.11,k===3?.6:.18,"square",.06)); }
     },
     toggle(){ muted=!muted; try{ localStorage.setItem("redpup_muted",muted?"1":"0"); }catch(e){}
-      if(audio) audio.muted=muted;
-      if(init()) master.gain.setTargetAtTime(muted?0:.4,ctx.currentTime,.05); return muted; },
+      if(audio) audio.muted=muted; Object.values(cineA).forEach(a=>a.muted=muted); if(muted) this.hush();
+      if(init()) master.gain.setTargetAtTime(muted?0:.45,ctx.currentTime,.05); return muted; },
   };
 })();
 document.addEventListener("pointerdown",()=>Music.init(),{once:true});
@@ -1013,7 +1072,7 @@ function home(){
       <div class="tile" style="background:linear-gradient(135deg,#e63940,#f77f00)" onclick="go('rooks')"><span>🏰</span><b>${owned} / ${visibleRooks().length} Rooks</b>collected</div>
       <div class="tile" style="background:linear-gradient(135deg,#7c3aed,#ec4899)" onclick="go('market')"><span>⭐</span><b>Weekly special</b>${esc(sp.rook)} + ${esc(sp.box)} Box on sale</div>
       <div class="tile" style="background:linear-gradient(135deg,#0369a1,#2a9d8f)" onclick="go('trade')"><span>🔁</span><b>Trade Rooks</b>with other players</div>
-    </div><p class="muted small" style="margin-top:26px">🎵 Music: Aftertune – Night Out · Hideout · Sakura Girl – Sunflower</p></div>`;
+    </div><p class="muted small" style="margin-top:26px">🎵 Music: Aftertune – Night Out · Hideout · Sakura Girl – Sunflower · Egzod, Maestro Chives, Neoni – Royalty [NCS Release], music provided by NoCopyrightSounds (ncs.io/Royalty)</p></div>`;
 }
 
 // ====================================================================
@@ -1289,7 +1348,7 @@ function revealTheRook(){
   confetti();
   document.getElementById("modal").innerHTML=`<div class="modal" style="background:rgba(0,0,0,.92)"><div class="card void pop" style="text-align:center">
     <div class="reveal Mystical">${rookSVG(SECRET,170)}</div><h1 style="margin-top:10px">THE ROOK</h1><div class="rar Mystical" style="font-size:20px">Mystical</div><br>
-    <div class="row"><button class="btn red" onclick="S.equipped='${SECRET}';save();closeModal();rooks()">Equip</button><button class="btn" onclick="closeModal();rooks()">Close</button></div></div></div>`;
+    <div class="row"><button class="btn red" onclick="Music.cineStop(null,1500);S.equipped='${SECRET}';save();closeModal();rooks()">Equip</button><button class="btn" onclick="Music.cineStop(null,1500);closeModal();rooks()">Close</button></div></div></div>`;
 }
 // "The Last Stand" v2 — the White army burns every Rook (outside -> in, rarest last),
 // then THE ROOK slams down, knocks them back, puts on his shades, and they fade away.
@@ -1325,7 +1384,7 @@ function lastStand(allNames){
       <div class="cap" id="cap"></div><div class="flash" id="fl"></div>
       <button class="skip">Skip ⏭</button>`;
     document.body.appendChild(el);
-    el.querySelector(".skip").onclick=()=>{ skipped=true; Music.stop(); end(); };
+    el.querySelector(".skip").onclick=()=>{ skipped=true; Music.stop(); Music.hush(); Music.cineStop(null,400); end(); };
     const $=id=>el.querySelector("#"+id), stage=$("cs");
     const cap=async(t,ms)=>{ if(skipped) return; const c=$("cap"); c.style.opacity=0; await wait(350); c.textContent=t; c.style.opacity=t?1:0; if(ms){ await wait(ms); c.style.opacity=0; } };
     const shake=(cls="shk")=>{ stage.classList.remove("shk","shk2"); void stage.offsetWidth; stage.classList.add(cls); };
@@ -1348,69 +1407,80 @@ function lastStand(allNames){
     const burn=(i)=>{ const p=rooksAt[i], e=$("r"+i); e.classList.add("burnt"); flame(p.x,p.y);
         burst(p.x,p.y,["#57534e","#292524","#f97316","#78716c"],8,34); Music.sfx("fire"); };
 
+    // narrator: shows the line and reads it out loud; resolves when finished
+    const say=async(t,opts)=>{ if(skipped) return; const c=$("cap"); c.style.opacity=0; await wait(250); if(skipped) return;
+      c.textContent=t; c.style.opacity=1; await Music.say(t,opts); };
+    const hideCap=()=>{ $("cap").style.opacity=0; };
     (async()=>{
-      Music.play("battle");
-      await wait(900);
-      cap("THE WHITE ARMY ATTACKS…",0);
+      Music.preloadCine();
+      const song=await Music.cine("build");
+      if(!song) Music.play("battle");                 // no song? use the synth soundtrack
+      await wait(700);
+      await say("In a world where every Rook stood together…"); if(skipped) return;
       // the White army marches in, firing
+      const line=say("The White army came for them.");
       whites.forEach((w,i)=>{ const p=at(w.a,54); wpos[i]=p; const e=$("w"+i); e.style.left=p.x+"%"; e.style.top=p.y+"%"; });
       for(let k=0;k<14&&!skipped;k++){ const i=rand(0,whites.length-1), j=rand(0,rooksAt.length-1);
         shot(at(whites[i].a,62),{x:rooksAt[j].x+(Math.random()*8-4),y:rooksAt[j].y+(Math.random()*8-4)},300); await wait(160); }
-      if(skipped) return;
-      await wait(500); await cap("THEY SURROUNDED THE ROOKS.",1300); if(skipped) return;
+      await line; if(skipped) return;
+      await say("They were surrounded."); if(skipped) return;
       // burn ring by ring, outside -> in
-      const DUR={Common:2400,Uncommon:1300,Rare:1300,Epic:1400,Chroma:1000,Legendary:2000};
+      const DUR={Common:2600,Uncommon:1400,Rare:1400,Epic:1500,Chroma:1100,Legendary:2200};
+      let pending=null;
       for(let gi=0;gi<groups.length&&!skipped;gi++){
         const rar=R[groups[gi][0]][1]; Music.level(gi);
         if(rar==="Unique") break;
-        if(gi===0) cap("NO ROOK WAS SPARED…",0);
-        if(rar==="Legendary") cap("…NOT EVEN THE LEGENDS.",0);
+        if(gi===0) pending=say("One by one… they fell.");
+        if(rar==="Legendary"){ if(pending) await pending; pending=say("Not even the legends survived."); }
         const idx=rooksAt.map((p,i)=>p.group===gi?i:-1).filter(i=>i>=0);
         const step=DUR[rar]/idx.length;
         for(const i of idx){ if(skipped) break; shot(nearestWhite(rooksAt[i]),rooksAt[i]).then(()=>{ if(!skipped) burn(i); }); await wait(step); }
         await wait(350);
       }
-      if(skipped) return;
+      if(pending) await pending; if(skipped) return;
       // the Unique burns last — everyone fires at once
       const ui=rooksAt.map((p,i)=>R[p.name][1]==="Unique"?i:-1).filter(i=>i>=0);
       if(ui.length){
-        await cap("…NOT EVEN THE RAREST.",0); await wait(900); if(skipped) return;
+        await say("Not even the rarest."); if(skipped) return;
         const target=rooksAt[ui[0]];
         await Promise.all(wpos.map(w=>shot(w,target,650)));
         if(skipped) return;
         ui.forEach(i=>{ $("r"+i).classList.add("burnt"); });
         flame(target.x,target.y,true); flash(.4); shake("shk2"); Music.sfx("bigfire");
         burst(target.x,target.y,["#f97316","#facc15","#111","#fafafa"],26,90);
-        await wait(2200);
+        await wait(2000);
       }
       if(skipped) return;
-      // silence…
-      Music.stop(); $("cap").style.opacity=0;
-      await wait(1700); if(skipped) return;
+      // silence… then the narrator, then the riser
+      Music.stop(); Music.cineStop("build",900); hideCap(); await wait(1300); if(skipped) return;
+      await say("But they forgot… about one Rook.",{rate:.75,pitch:.45}); if(skipped) return;
+      hideCap(); const onBeat=await Music.dropSync(.12); if(skipped) return;   // start the fall 0.12s early so the impact lands on the beat
       // THE ROOK slams into the table
-      const t=$("tr"); t.style.transition="top .45s cubic-bezier(.75,0,1,.5),transform .25s"; t.style.opacity=1; t.style.top="50%";
-      await wait(450); if(skipped) return;
-      Music.sfx("slam"); flash(.85); shake("shk2");
+      const t=$("tr"); t.style.transition="top .12s cubic-bezier(.75,0,1,.5),transform .25s"; t.style.opacity=1; t.style.top="50%";
+      await wait(120); if(skipped) return;
+      Music.sfx(onBeat?"impact":"slam"); flash(.85); shake("shk2");
       t.style.transform="scale(1.2,.8)"; setTimeout(()=>{ t.style.transform="scale(1)"; },220);
       const wv=$("wave"); wv.style.transition="none"; wv.style.opacity=1; void wv.offsetWidth; wv.style.transition="";
       requestAnimationFrame(()=>{ wv.style.transform="scale(7)"; wv.style.opacity=0; });
       burst(50,50,["#3f3f46","#71717a","#a1a1aa","#18181b"],30,140);
       whites.forEach((w,i)=>{ const p=at(w.a,63), e=$("w"+i); e.classList.add("back"); e.style.left=p.x+"%"; e.style.top=p.y+"%"; e.style.transform=`rotate(${rand(-160,160)}deg)`; });
       rooksAt.forEach((p,i)=>{ const e=$("r"+i), dx=(p.x-50)*.06, dy=(p.y-50)*.06; e.style.transform=`scale(.78) translate(${dx}px,${dy+4}px) rotate(${rand(-25,25)}deg)`; });
-      await wait(1900); if(skipped) return;
+      await wait(2600); if(skipped) return;
       // shades on…
       t.classList.add("cool"); Music.sfx("shine");
-      await wait(1500); if(skipped) return;
+      await wait(1400); if(skipped) return;
       // …and the White army fades away in his aura
-      Music.sfx("triumph");
+      if(!onBeat) Music.sfx("triumph");
       const au=$("aura"); au.style.opacity=1; au.style.transform="scale(5)";
       whites.forEach((w,i)=>$("w"+i).classList.add("gone"));
-      await cap("THE ROOK.",0);
-      await wait(3200);
+      await wait(900);
+      await say("THE ROOK.",{rate:.6,pitch:.35});
+      await wait(2600);
       end();
     })();
   });
 }
+
 function sellAllExtras(){ const v=extrasValue(); if(!v) return;
   showModal(`<h2>Sell all extras?</h2><p>You'll keep 1 of every Rook and get <b>🪙${v}</b>.</p><br>
     <div class="row"><button class="btn red" onclick="for(const k in S.owned)S.owned[k]=1;S.tokens+=${v};save();closeModal();confetti();rooks()">Sell</button><button class="btn" onclick="closeModal()">Cancel</button></div>`); }
