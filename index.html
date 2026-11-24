@@ -208,11 +208,6 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   .cine .skip{position:absolute;top:calc(9vh + 10px);right:14px;z-index:9;font:inherit;font-size:14px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:5px 12px;cursor:pointer}
   .cine{overflow:hidden;user-select:none;-webkit-user-select:none}
   .cine.blackout>*{visibility:hidden}
-  .cine .mbox{position:absolute;right:18px;top:calc(9vh + 14px);z-index:10;width:190px;height:86px;border:3px dashed #a855f7;border-radius:14px;color:#e9d5ff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:2px;font-size:13px;background:rgba(168,85,247,.08);touch-action:none;cursor:none}
-  .cine .mbox small{font-size:10px;opacity:.75;padding:0 6px}
-  .cine .mbox.wait{animation:mpulse 1.1s infinite;cursor:pointer}
-  @keyframes mpulse{50%{box-shadow:0 0 0 8px rgba(168,85,247,.25);border-color:#e9d5ff}}
-  .cine .mbox.on{border-style:solid;background:rgba(168,85,247,.18)}
   .cine .ob{position:absolute;display:flex;align-items:center;justify-content:center;z-index:2;transition:left 2.2s cubic-bezier(.4,0,.2,1),top 2.2s cubic-bezier(.4,0,.2,1),transform .6s,opacity .6s,filter .8s}
   .cine .ob svg{width:100%;height:100%}
   .cine .ob.burnt{filter:grayscale(1) brightness(.22) sepia(.5);transform:scale(.78) translateY(10%)}
@@ -221,6 +216,8 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   .cine .wpc.gone{opacity:0;filter:drop-shadow(0 0 16px #a855f7) blur(2px)}
   .cine .shot{position:absolute;width:1.5%;height:1.5%;margin:-.75% 0 0 -.75%;border-radius:50%;background:#ffd166;box-shadow:0 0 8px #ff7b00,0 0 18px #ff4d00;z-index:4}
   .cine .wave{position:absolute;left:50%;top:50%;width:20%;height:20%;margin:-10% 0 0 -10%;border-radius:50%;border:4px solid #c084fc;box-shadow:0 0 30px #a855f7,inset 0 0 20px #a855f7;z-index:4;transform:scale(.2);opacity:0;transition:transform .9s cubic-bezier(.1,.8,.3,1),opacity 1.1s ease-in}
+  .cine .pcode{position:absolute;left:14px;bottom:calc(9vh + 10px);z-index:9;color:rgba(255,255,255,.45);font:600 12px ui-monospace,Menlo,Consolas,monospace;letter-spacing:1px;pointer-events:none}
+  .cine .glowfp{position:absolute;inset:-18%;z-index:0;border-radius:50%;pointer-events:none;opacity:0;transition:opacity .08s;background:radial-gradient(circle,rgba(168,85,247,.95) 0 35%,rgba(168,85,247,.45) 50%,transparent 70%)}
   .cine .aura{position:absolute;left:50%;top:50%;width:30%;height:30%;margin:-15% 0 0 -15%;border-radius:50%;background:radial-gradient(circle,rgba(168,85,247,.6),rgba(168,85,247,.15) 50%,transparent 70%);z-index:1;transform:scale(.3);opacity:0;transition:transform 3s ease-out,opacity 1.2s}
   .cine .theRook .shades{transform:translateY(-46px);opacity:0;transition:transform 1.3s cubic-bezier(.5,0,.3,1),opacity .4s}
   .cine .theRook.cool .shades{transform:none;opacity:1}
@@ -255,8 +252,62 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   .logo{position:relative}
   .ear{position:absolute;left:16.5%;top:13%;width:5.6%;height:64%;cursor:pointer}
   .login form{display:grid;gap:10px}
+  /* ---- box opening ---- */
+  .boxopen{position:relative;height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;border-radius:16px}
+  .boxic{font-size:110px;line-height:1;transition:filter .3s}
+  .boxic.s1{animation:wob .5s ease-in-out infinite}
+  .boxic.s2{animation:shake .12s linear infinite;filter:drop-shadow(0 0 18px var(--glow)) drop-shadow(0 0 30px var(--glow))}
+  .boxic.s3{animation:shake .07s linear infinite;transform-origin:center;filter:drop-shadow(0 0 30px var(--glow)) drop-shadow(0 0 60px var(--glow)) brightness(1.3);font-size:130px}
+  .boxtxt{font-weight:800;font-size:22px;margin-top:10px;color:var(--glow)}
+  .boxopen .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .2s}
+  .boxopen .flash.on{opacity:1}
+  @keyframes wob{0%,100%{transform:rotate(0) scale(1)}25%{transform:rotate(-6deg) scale(1.03)}75%{transform:rotate(6deg) scale(1.03)}}
+  .rays{position:relative;display:inline-block;padding:16px;isolation:isolate}
+  .rays::before{content:"";position:absolute;inset:-40px;border-radius:50%;opacity:0;z-index:-1;animation:spin 6s linear infinite}
+  .rays.Rare::before,.rays.Epic::before,.rays.Legendary::before,.rays.Chroma::before,.rays.Unique::before,.rays.Mystical::before{opacity:.55;background:repeating-conic-gradient(var(--rc) 0 12deg,transparent 12deg 30deg);-webkit-mask:radial-gradient(circle,#000 30%,transparent 70%);mask:radial-gradient(circle,#000 30%,transparent 70%)}
+  .rays.Rare{--rc:#60a5fa}.rays.Epic{--rc:#c084fc}.rays.Legendary{--rc:#fb923c}.rays.Unique{--rc:#facc15}.rays.Mystical{--rc:#a855f7}
+  .rays.Chroma::before{background:repeating-conic-gradient(#f87171 0 10deg,#fbbf24 10deg 20deg,#34d399 20deg 30deg,#60a5fa 30deg 40deg,#c084fc 40deg 50deg,transparent 50deg 60deg)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  /* ---- chests ---- */
+  .chest.opening{animation:shake .1s linear 6;transform:scale(1.15)}
+  .chest.dimmed{opacity:.35;transform:scale(.9)}
+  /* ---- rook battles ---- */
+  .arena{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;background:linear-gradient(180deg,#fff,var(--cream));border:2px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
+  .ftr{text-align:center;position:relative}.ftr b{font-size:16px}
+  #f_foe svg{transform:scaleX(-1)}
+  .ftr.hit svg{animation:hit .35s}.ftr.dodge svg{animation:dodge .5s}
+  @keyframes hit{0%,100%{transform:translateX(0)}20%{transform:translateX(-10px) rotate(-6deg);filter:brightness(2) saturate(0)}60%{transform:translateX(8px)}}
+  @keyframes dodge{50%{transform:translateY(-26px)}}
+  #f_foe.hit svg{animation:hitf .35s}@keyframes hitf{0%,100%{transform:scaleX(-1)}20%{transform:scaleX(-1) translateX(-10px) rotate(-6deg);filter:brightness(2) saturate(0)}}
+  #f_foe.dodge svg{animation:dodgef .5s}@keyframes dodgef{0%,100%{transform:scaleX(-1)}50%{transform:scaleX(-1) translateY(-26px)}}
+  .vs{font-size:34px;font-weight:900;color:var(--red);text-align:center}.vs small{display:block;font-size:14px;color:#7a6a6c;font-weight:600}
+  .hpbar{position:relative;height:20px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin:6px auto 0;max-width:220px}
+  .hpbar div{height:100%;transition:width .5s}.hpbar b{position:absolute;inset:0;font-size:12px;line-height:20px;color:#1f2937}
+  .mv{height:34px;font-size:28px}.dmg{font-size:22px;color:#ef4444;margin-left:6px;animation:pop .3s}.dmg.heal{color:#16a34a}
+  .tell{text-align:center;font-weight:700;background:#fff7ed;border:2px dashed #fdba74;border-radius:12px;padding:8px;margin-bottom:8px}
+  .moves{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+  .mvbtn{font:inherit;font-size:20px;font-weight:800;border:none;border-radius:16px;padding:16px 8px;color:#fff;cursor:pointer;box-shadow:0 5px 0 var(--dark)}
+  .mvbtn span{display:block;font-size:44px}.mvbtn.P{background:#e63940}.mvbtn.R{background:#2a9d8f}.mvbtn.D{background:#7c3aed}
+  .mvbtn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--dark)}
+  .ladder{display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;margin:10px 0}
+  .ladder>div{display:flex;flex-direction:column;align-items:center;padding:4px;border-radius:10px}
+  .ladder>div.me{background:#fde68a}.ladder.big>div:not(.done){opacity:.35}.ladder>span{color:#9ca3af;font-weight:800}
+  .lstat{position:absolute;right:40px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700;color:#7a6a6c}
+  /* ---- checkmate ---- */
+  .cmwrap{display:flex;justify-content:center;margin:8px 0}
+  .cmboard{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);width:min(440px,92vw);aspect-ratio:1;border:4px solid var(--dark);border-radius:8px;overflow:hidden}
+  .cmboard .sq{min-height:0;min-width:0;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative}
+  .cmboard .lt{background:#f3e3c3}.cmboard .dk{background:#b58863}
+  .cmboard .sq svg{width:86%;height:86%}
+  .cmboard .sel{box-shadow:inset 0 0 0 4px #facc15}
+  .cmboard .tgt{cursor:pointer}.cmboard .tgt::after{content:"";width:30%;height:30%;border-radius:50%;background:rgba(34,197,94,.75)}
+  .cmboard.live .sq:has(svg){cursor:pointer}
+  .cmboard .chk{background:radial-gradient(circle,#f87171,#b91c1c)}
+  .wk{font-size:min(44px,9vw);line-height:1;color:#fff;text-shadow:0 0 2px #000,0 2px 0 #000,0 0 6px #000}
   .tabs{display:flex;background:var(--cream);border-radius:12px;padding:4px}
   .tabs button{flex:1;font:inherit;font-weight:600;border:none;background:none;padding:9px;border-radius:9px;cursor:pointer;color:#7a6a6c}
+  .subtabs{max-width:460px;margin:0 auto 16px}
+  header nav button.on{background:var(--red);color:#fff}
   .tabs button.on{background:#fff;color:var(--red);box-shadow:0 2px 0 var(--line)}
   .err{color:#dc2626;font-weight:600;min-height:20px}
   .note{background:#fff7d6;border-radius:10px;padding:10px;font-size:14px}
@@ -273,6 +324,8 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   .loading{text-align:center;padding:60px;font-size:22px;color:#7a6a6c}
 
   /* titles, achievements, news, create */
+  .beat{font:inherit;font-size:13px;font-weight:600;border:2px solid #a855f7;background:#faf5ff;border-radius:9px;padding:4px 7px;cursor:pointer;min-width:52px}
+  .beat[data-b="0"]{background:#27272a;color:#e4e4e7;border-color:#52525b}
   .ttl{display:inline-block;background:linear-gradient(90deg,#7c3aed,#db2777);color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px;margin-left:4px;vertical-align:middle;white-space:nowrap}
   .achgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
   .ach{display:flex;gap:10px;align-items:flex-start;background:var(--cream);border:2px solid var(--line);border-radius:14px;padding:10px;opacity:.75}
@@ -418,6 +471,7 @@ if (window.FB) {
       ban: (uid, name, why) => F.setDoc(F.doc(db, "bans", uid), { name, why, at: F.serverTimestamp() }),
       unban: uid => F.deleteDoc(F.doc(db, "bans", uid)),
       async bans() { const s = await F.getDocs(F.collection(db, "bans")); return s.docs.map(d => ({ id: d.id, ...d.data() })); },
+      async allPlayers() { const s = await F.getDocs(F.collection(db, "usernames")); return s.docs.map(d => ({ id: d.data().uid, name: d.data().name })).filter(p => p.id); },
       async allRanks() { const s = await F.getDocs(F.collection(db, "ranks")); return s.docs.map(d => ({ id: d.id, name: d.data().name })); },
       async news() {
         const s = await F.getDocs(F.query(F.collection(db, "news"), F.orderBy("at", "desc"), F.limit(20)));
@@ -929,8 +983,8 @@ async function doSignup(){
 }
 let TEACHER=false;
 function renderNav(){
-  document.getElementById("nav").innerHTML=(TEACHER?`<button onclick="go('host')">🎤 Host</button>`:`<button onclick="go('join')">🔑 Join</button>`)+
-    `<button onclick="go('play')">▶ Solo</button><button onclick="go('create')">✏️ Create</button><button onclick="go('market')">🛒 Market</button><button onclick="go('rooks')">🏰 Rooks</button><button onclick="go('trade')">🔁 Trade</button><button onclick="go('hall')">🏆 Hall</button>`+
+  document.getElementById("nav").innerHTML=`<button data-g="home" onclick="go('home')">🏠 Home</button>`+(TEACHER?`<button data-g="host" onclick="go('host')">🎤 Host</button><button data-g="play" onclick="go('play')">▶ Play</button>`:`<button data-g="play" onclick="go('join')">▶ Play</button>`)+
+    `<button data-g="create" onclick="go('create')">✏️ Create</button><button data-g="rooks" onclick="go('rooks')">🏰 Rooks</button><button data-g="trade" onclick="go('trade')">🔁 Trade</button><button data-g="hall" onclick="go('hall')">🏆 Hall</button>`+
     (ADMIN?`<button onclick="go('admin')">🛡️ Admin</button>`:"");
 }
 async function afterLogin(){
@@ -1111,6 +1165,11 @@ const Music=(()=>{
       if(name==="shine"){ [1568,2093,2637,3136].forEach((f,k)=>tone(f,t+k*.07,.9,"sine",.06,null,.005,bus)); }
       if(name==="triumph"){ [45,57,61,64,69,73,76].forEach(m=>strings(m,t,5,.03,2600)); taiko(t,.8); taiko(t+.5,.5);
         [81,85,88,93].forEach((m,k)=>tone(hz(m),t+.6+k*.16,1.4,"triangle",.04,null,.005,bus)); }
+      if(name==="good"){ [76,83].forEach((m,k)=>tone(hz(m),t+k*.08,.16,"triangle",.07)); }
+      if(name==="bad"){ tone(196,t,.25,"square",.05,110,.01); }
+      if(name==="punch"){ noise(t,.18,.3,"lowpass",900,bus); tone(90,t,.2,"sine",.5,40,.003,bus); }
+      if(name==="tick"){ tone(1200,t,.05,"square",.03); }
+      if(name==="whoosh"){ noise(t,.8,.12,"bandpass",1200,bus,200); }
       if(name==="win"){ [72,76,79,84].forEach((m,k)=>tone(hz(m),t+k*.11,k===3?.6:.18,"square",.06)); }
     },
     toggle(){ muted=!muted; try{ localStorage.setItem("redpup_muted",muted?"1":"0"); }catch(e){}
@@ -1158,8 +1217,21 @@ function toggleSound(){ const m=Music.toggle(); const b=document.getElementById(
 //  ROUTER + HOME
 // ====================================================================
 const app=document.getElementById("app");
+// Combined tabs: Rooks = My Rooks + Market, Play = Join + Solo
+function navOn(g){ document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.g===g)); }
+function subTabs(group,cur){
+  const T=group==="rooks"?[["rooks","🏰 My Rooks"],["market","🛒 Market"]]:[["join","🔑 Join a Game"],["play","▶ Solo"]];
+  app.insertAdjacentHTML("afterbegin",`<div class="tabs subtabs">${T.map(([k,l])=>`<button class="${k===cur?"on":""}" onclick="go('${k}')">${l}</button>`).join("")}</div>`);
+  navOn(group);
+}
+{ const _r=rooks,_m=market,_p=play,_j=join;
+  rooks=function(...a){ const v=_r(...a); if(!document.querySelector(".subtabs")&&!document.querySelector(".cine")) subTabs("rooks","rooks"); return v; };
+  market=function(...a){ const v=_m(...a); if(!document.querySelector(".subtabs")) subTabs("rooks","market"); return v; };
+  play=function(...a){ const v=_p(...a); if(PICK==="solo"&&!TEACHER) subTabs("play","play"); else navOn(PICK==="host"?"host":"play"); return v; };
+  join=function(...a){ const v=_j(...a); subTabs("play","join"); return v; };
+}
 function go(p,arg){ if(!S) return; stopTimers(); G=null; leaveLive(); closeModal(); Music.stop();
-  ({home,play,market,rooks,trade,create,join,host,hall,admin,news:newsPage})[p](arg); window.scrollTo(0,0); }
+  ({home,play,market,rooks,trade,create,join,host,hall,admin,news:newsPage})[p](arg); if(!['rooks','market','play','join'].includes(p)) navOn(p==='news'?'':p); window.scrollTo(0,0); }
 
 function home(){
   const owned=Object.keys(S.owned).length, sp=special();
@@ -1202,7 +1274,9 @@ function renderSets(){
     :`<p class="muted">No sets found. Try another search, or <a href="#" onclick="go('create');return false">make your own</a>!</p>`;
 }
 const MODES=[
-  {id:"quest",name:"Pup Quest",ic:"🎁",desc:"Answer right, open a chest. Gold can double… or get stolen!"},
+  {id:"battle",name:"Rook Battles",ic:"⚔️",desc:"Start as a Common. Punch, rest or dodge your way up to the Chroma!"},
+  {id:"quest",name:"Castle Raid",ic:"🏰",desc:"Open chests: double, steal, swap, raid… or lose it all!"},
+  {id:"checkmate",name:"Checkmate",ic:"♜",desc:"Answer right to move your Rooks. Trap the King!"},
   {id:"classic",name:"Classic",ic:"⚡",desc:"Faster answers = more points. Top the leaderboard."},
   {id:"race",name:"Rook Race",ic:"🏁",desc:"Right answers move your Rook. First to the flag wins!"},
   {id:"speed",name:"Speed Run",ic:"⏱️",desc:"60 seconds. Answer as many as you can. Build streaks!"},
@@ -1227,9 +1301,9 @@ function startGame(i,mode){
   const set=allSets()[i];
   const bots=shuffle(["Biscuit","Rusty","Maple","Pepper","Scout","Bean","Waffles","Ziggy"]).slice(0,3)
     .map(n=>({name:n,gold:0,pts:0,pos:0,rook:ROOKS[rand(0,20)][0]}));
-  G={set,mode,deck:[],n:0,total:Math.min(set.qs.length,10),gold:0,pts:0,pos:0,correct:0,streak:0,best:0,bots};
+  G={set,mode,deck:[],n:0,total:mode==='battle'||mode==='checkmate'?0:Math.min(set.qs.length,10),gold:0,pts:0,pos:0,correct:0,streak:0,best:0,bots};
   Music.play("game");
-  ({quest:pqNext,classic:clNext,race:raceNext,speed:speedStart})[mode]();
+  ({quest:pqNext,classic:clNext,race:raceNext,speed:speedStart,battle:startBattle,checkmate:startCheckmate})[mode]();
 }
 function drawQ(){ if(!G.deck.length) G.deck=shuffle([...G.set.qs.keys()]); const x=G.set.qs[G.deck.pop()], cs=x.c&&x.c.length?x.c:[0];
   return {q:x.q,ans:shuffle(x.a.map((o,k)=>({o,right:cs.includes(k)})))}; }
@@ -1259,22 +1333,22 @@ function pqNext(){
   ask(hud(`Q ${G.n}/${G.total}`,`💰 ${G.gold}`),20,900,right=>{
     G.bots.forEach(b=>{ if(Math.random()<.65) b.gold+=rand(5,40); });
     if(right){ G.correct++;
-      app.innerHTML=`<div class="fade">${hud(`Q ${G.n}/${G.total}`,`💰 ${G.gold}`)}<div class="feedback">✅ Correct! Pick a chest</div>
-        <div class="chests">${[0,1,2].map(()=>`<div class="chest" onclick="openChest()">🎁</div>`).join("")}</div></div>`;
+      app.innerHTML=`<div class="fade">${hud(`Q ${G.n}/${G.total}`,`💰 ${G.gold}${G.shield?" 🛡️":""}`)}${raidChests("openChest")}</div>`;
     } else pqNext();
   });
 }
-function openChest(){
+function openChest(k){
   if(!G||G.chestOpen) return; G.chestOpen=true;
-  const r=Math.random(); let msg, good=true;
-  if(r<.45){ const n=[10,15,20,25,30,40][rand(0,5)]; G.gold+=n; msg=`+${n} gold!`; }
-  else if(r<.58){ G.gold*=2; msg="DOUBLE gold! ✖️2"; }
-  else if(r<.68){ G.gold=Math.floor(G.gold*1.5)+5; msg="Gold Rush! +50%"; }
-  else if(r<.8){ const lost=Math.floor(G.gold*.25); G.gold-=lost; msg=`Oh no! Lost ${lost} gold`; good=false; }
-  else if(r<.92){ const b=[...G.bots].sort((x,y)=>y.gold-x.gold)[0]; const take=Math.floor(b.gold*.2); b.gold-=take; G.gold+=take; msg=`Stole ${take} from ${b.name}! 😈`; }
-  else { msg="Nothing… just a bone 🦴"; good=false; }
-  showModal(`<div style="font-size:60px">${good?"🤑":"😬"}</div><h2>${msg}</h2><p style="font-size:22px;margin:10px 0">💰 ${G.gold}</p>
-    <button class="btn red" onclick="closeModal();G.chestOpen=false;pqNext()">Next ▶</button>`);
+  chestOpenAnim(k,()=>{
+    const L=rollLoot(), bots=[...G.bots].sort((x,y)=>y.gold-x.gold), top=bots[0];
+    if(L.f){ const r=L.f(G.gold); G.gold=r.gold; return raidResult(L.ic,r.msg,r.bad,"pqNext"); }
+    if(L.act==="shield"){ G.shield=true; return raidResult("🛡️","Shield! Your next steal or swap is blocked",0,"pqNext"); }
+    if(L.act==="steal"){ if(top.shield){ top.shield=false; return raidResult("🛡️",`${esc(top.name)}'s shield blocked your steal!`,1,"pqNext"); }
+      const take=Math.floor(top.gold*.2); top.gold-=take; G.gold+=take; return raidResult("😈",`Stole ${take} from ${esc(top.name)}!`,0,"pqNext"); }
+    if(L.act==="swap"){ if(top.gold<=G.gold) { G.gold+=15; return raidResult("🔄","Swap! …but you're already on top. +15 gold",0,"pqNext"); }
+      const mine=G.gold; G.gold=top.gold; top.gold=mine; return raidResult("🔄",`Swapped gold with ${esc(top.name)}!`,0,"pqNext"); }
+    if(L.act==="raid"){ let tot=0; G.bots.forEach(b=>{ const t=Math.floor(b.gold*.1); b.gold-=t; tot+=t; }); G.gold+=tot; return raidResult("🏹",`RAID! Took 10% from everyone: +${tot}`,0,"pqNext"); }
+  });
 }
 // --- Classic
 function clNext(){
@@ -1329,6 +1403,242 @@ function speedEnd(){
     <h2>${G.correct} correct · best streak ${G.best}</h2><h2 class="pop">+${earned} 🪙 tokens</h2>
     <div class="row"><button class="btn red big" onclick="startGame(${allSets().findIndex(s=>s.title===G.set.title)},'speed')">Play Again</button><button class="btn big" onclick="go('play')">New Set</button></div></div>`;
 }
+// ====================================================================
+//  ROOK BATTLES — climb from your pack's Common all the way to a Chroma
+// ====================================================================
+const BAT_RARS=["Common","Uncommon","Rare","Epic","Legendary","Chroma"];
+const BAT_HP={Common:30,Uncommon:40,Rare:50,Epic:60,Legendary:70,Chroma:80};
+const BAT_Q=5, BAT_MOVE=3;                       // seconds to answer, seconds to pick a move
+const MOVES={P:{ic:"👊",n:"Punch"},R:{ic:"😴",n:"Rest"},D:{ic:"💨",n:"Dodge"},N:{ic:"😵",n:"Frozen"}};
+const TELLS={P:"👊 is winding up a punch…",R:"😴 looks tired…",D:"💨 is bouncing on his toes…"};
+function battleLadder(){
+  const boxes=BOXES.filter(b=>!b.unique&&boxStatus(b).ok&&ROOKS.some(r=>r[5]===b.name&&r[1]==="Common"));
+  const b=boxes[rand(0,boxes.length-1)], from=(rar,box)=>ROOKS.filter(r=>r[1]===rar&&r[5]===box).map(r=>r[0]);
+  const any=rar=>ROOKS.filter(r=>r[1]===rar&&r[5]!=="Rook Pack").map(r=>r[0]);
+  const lad=BAT_RARS.map(rar=>{ const p=rar==="Chroma"?from("Chroma","Any"):from(rar,b.name), q=p.length?p:any(rar); return q[rand(0,q.length-1)]; });
+  return {box:b,lad};
+}
+// What happens to (me, them) for each pair of moves — straight from Peel's rules. N = froze (wrong answer / too slow)
+function battleHit(a,b){
+  const T={PP:[-10,-10],PR:[0,-20],RP:[-20,0],RR:[20,20],RD:[20,0],DR:[0,20],PD:[0,0],DP:[0,0],DD:[0,0],NP:[-10,0],NR:[0,20],ND:[0,0]};
+  return T[a+b]||[0,0];
+}
+function battleAI(hp,max){
+  if(hp>=max) return Math.random()<.7?"P":"D";      // no point resting at full health
+  const r=Math.random(); return r<.3?"R":r<.3+.7*.7?"P":"D";
+}
+function startBattle(){
+  const L=battleLadder(); Object.assign(G,{box:L.box,lad:L.lad,lvl:0,rounds:0,wins:0,kos:0});
+  G.hp=BAT_HP[BAT_RARS[0]]; G.ehp=BAT_HP[BAT_RARS[1]];
+  showModal(`<h2>⚔️ Rook Battles</h2><p>Your pack: <b>${L.box.ic} ${esc(boxLabel(L.box.name))}</b></p>
+    <div class="ladder">${L.lad.map((n,i)=>`<div class="${i?"":"me"}">${rookSVG(n,46)}<small class="rar ${BAT_RARS[i]}">${BAT_RARS[i]}</small></div>`).join('<span>›</span>')}</div>
+    <p class="muted">You start as <b>${esc(L.lad[0])}</b>. Beat each Rook to become it. First to the Chroma wins!</p>
+    <p class="muted small">Answer in ${BAT_Q}s, then pick 👊 Punch, 😴 Rest or 💨 Dodge in ${BAT_MOVE}s — or the enemy strikes anyway.</p>
+    <button class="btn red big" onclick="closeModal();battleNext()">Fight! ⚔️</button>`);
+}
+const batMe=()=>G.lad[G.lvl], batFoe=()=>G.lad[G.lvl+1];
+function batProgress(){ if(G.lvl>=5) return 100; const m=BAT_HP[BAT_RARS[G.lvl+1]]; return Math.round(G.lvl*20+(1-Math.max(0,G.ehp)/m)*19); }
+function hpBar(hp,max){ const p=Math.max(0,hp)/max*100; return `<div class="hpbar"><div style="width:${p}%;background:${p>50?"#22c55e":p>25?"#f59e0b":"#ef4444"}"></div><b>${Math.max(0,hp)} / ${max}</b></div>`; }
+function arena(extra){
+  const me=batMe(), foe=batFoe(), mr=BAT_RARS[G.lvl], fr=BAT_RARS[G.lvl+1];
+  return `<div class="arena">
+    <div class="ftr" id="f_me">${rookSVG(me,G.live?84:96)}<div><b>${esc(me)}</b> <small class="rar ${mr}">${mr}</small></div>${hpBar(G.hp,BAT_HP[mr])}<div class="mv" id="mv_me"></div></div>
+    <div class="vs">VS<small>${G.live?`⏱️ <span id="gclock">${clockText(LIVE.game.endsAt)}</span>`:`Fight ${G.lvl+1}/5`}</small></div>
+    <div class="ftr" id="f_foe">${rookSVG(foe,G.live?84:96,"",{})}<div><b>${esc(foe)}</b> <small class="rar ${fr}">${fr}</small></div>${hpBar(G.ehp,BAT_HP[fr])}<div class="mv" id="mv_foe"></div></div>
+  </div>${extra||""}`;
+}
+function battleNext(){
+  if(!G||G.mode!=="battle"||G.over) return;
+  if(G.lvl>=5) return battleChampion();
+  G.foeMove=battleAI(G.ehp,BAT_HP[BAT_RARS[G.lvl+1]]);
+  G.tell=Math.random()<.75?G.foeMove:["P","R","D"][rand(0,2)];
+  if(G.tell==="R"&&G.ehp>=BAT_HP[BAT_RARS[G.lvl+1]]) G.tell=G.foeMove;   // he never "looks tired" at full health
+  ask(arena(`<div class="tell">${esc(batFoe())} ${TELLS[G.tell]}</div><div class="feedback small">⚔️ Answer before he strikes!</div>`),BAT_Q,350,right=>{
+    if(!G||G.over) return; G.total++;
+    if(right){ G.correct++; battlePickMove(); } else battleResolve("N");
+  });
+}
+function battlePickMove(){
+  app.innerHTML=`<div class="fade">${arena(`<div class="tell">${esc(batFoe())} ${TELLS[G.tell]}</div>
+    <div class="tbar"><div id="tfill"></div></div>
+    <div class="moves">${["P","R","D"].map(k=>`<button class="mvbtn ${k}" onclick="battleResolve('${k}')"><span>${MOVES[k].ic}</span>${MOVES[k].n}</button>`).join("")}</div>`)}</div>`;
+  G.picking=true; const end=Date.now()+BAT_MOVE*1000; clearInterval(qTimer);
+  qTimer=setInterval(()=>{ const left=end-Date.now(), f=document.getElementById("tfill"); if(f){ f.style.width=Math.max(0,left/(BAT_MOVE*10))+"%"; f.style.background="#ef4444"; }
+    if(left<=0) battleResolve("N"); },80);
+}
+function battleResolve(me){
+  if(!G||G.over) return; if(me!=="N"&&!G.picking) return; clearInterval(qTimer); G.picking=false; G.rounds++;
+  const foe=G.foeMove, [dm,df]=battleHit(me,foe), mMax=BAT_HP[BAT_RARS[G.lvl]], fMax=BAT_HP[BAT_RARS[G.lvl+1]];
+  G.hp=Math.min(mMax,G.hp+dm); G.ehp=Math.min(fMax,G.ehp+df);
+  app.innerHTML=`<div class="fade">${arena(`<div class="feedback">${me==="N"?"😵 Too slow! ":""}You ${MOVES[me].ic} ${me==="N"?"froze":MOVES[me].n.toLowerCase()} · he ${MOVES[foe].ic} ${MOVES[foe].n.toLowerCase()}s</div>`)}</div>`;
+  const show=(id,mv,d)=>{ const m=document.getElementById("mv_"+id), f=document.getElementById("f_"+id); if(m) m.innerHTML=`<span class="pop">${MOVES[mv].ic}</span>${d?`<b class="dmg ${d>0?"heal":""}">${d>0?"+":""}${d}</b>`:""}`; if(f&&d<0) f.classList.add("hit"); if(f&&mv==="D") f.classList.add("dodge"); };
+  show("me",me,dm); show("foe",foe,df);
+  if(dm<0||df<0) Music.sfx("punch");
+  const wait=1500;
+  if(G.ehp<=0){                                     // you win the fight (even if you both drop together)
+    const beat=batFoe(); G.lvl++; G.wins++;
+    if(G.lvl<5){ G.hp=BAT_HP[BAT_RARS[G.lvl]]; G.ehp=BAT_HP[BAT_RARS[G.lvl+1]]; }
+    if(G.live) pushLive();
+    return setTimeout(()=>{ if(!G||G.over) return; Music.sfx("win");
+      if(G.lvl>=5) return battleChampion();
+      app.innerHTML=`<div class="card fade" style="text-align:center"><h1>💥 KO!</h1><div class="bob">${rookSVG(beat,130)}</div>
+        <h2>You beat ${esc(beat)} — now you ARE ${esc(beat)}!</h2><p class="muted">Next up: <b>${esc(batFoe())}</b> <span class="rar ${BAT_RARS[G.lvl+1]}">${BAT_RARS[G.lvl+1]}</span></p></div>`;
+      setTimeout(battleNext,1800); },wait);
+  }
+  if(G.hp<=0){
+    G.kos++; G.hp=mMax; G.ehp=fMax; if(G.live) pushLive();
+    return setTimeout(()=>{ if(!G||G.over) return; app.innerHTML=`<div class="card fade" style="text-align:center"><h1>😵 Knocked out!</h1><div>${rookSVG(batMe(),110)}</div>
+      <h2>Back on your feet — try ${esc(batFoe())} again!</h2><p class="muted">Health refilled for both of you.</p></div>`; setTimeout(battleNext,1700); },wait);
+  }
+  if(G.live) pushLive();
+  setTimeout(battleNext,wait);
+}
+function battleChampion(){
+  if(G.live){ pushLive(); app.innerHTML=`<div class="card fade" style="text-align:center"><h1>🌈 CHROMA CHAMPION!</h1><div class="bob">${rookSVG(G.lad[5],140)}</div><p>You reached the Chroma first! Waiting for results…</p></div>`; confetti(); return; }
+  battleEnd(true);
+}
+function battleEnd(won){
+  stopTimers(); if(!G) return; G.over=true; G.locked=true; closeModal(); Music.stop(); Music.sfx("win");
+  const earned=reward(G.correct,G.set), idx=allSets().findIndex(s=>s.title===G.set.title);
+  addStat("games"); addStat("correct",G.correct); if(won) addStat("wins");
+  S.tokens+=earned; save(); if(won) confetti();
+  app.innerHTML=`<div class="card fade" style="text-align:center"><h1>${won?"🌈 Chroma Champion!":"⚔️ Battle over"}</h1>
+    <div class="ladder big">${G.lad.map((n,i)=>`<div class="${i<=G.lvl?"done":""} ${i===G.lvl?"me":""}">${rookSVG(n,52)}<small class="rar ${BAT_RARS[i]}">${BAT_RARS[i]}</small></div>`).join('<span>›</span>')}</div>
+    <p>You made it to <b>${esc(G.lad[G.lvl])}</b> · ${G.correct} right · ${G.kos} knockout${G.kos===1?"":"s"}</p>
+    <h2 class="pop">+${earned} 🪙 tokens</h2>
+    <div class="row"><button class="btn red big" onclick="startGame(${idx},'battle')">Play Again</button><button class="btn big" onclick="go('play')">New Set</button></div></div>`;
+}
+
+// ====================================================================
+//  CHECKMATE — answer right to move a Rook. Trap the white King!
+// ====================================================================
+const CM_N=8;
+const cmKey=(r,c)=>r*CM_N+c, inB=(r,c)=>r>=0&&r<CM_N&&c>=0&&c<CM_N;
+function cmOcc(st,skip){ const o={}; st.rooks.forEach((p,i)=>{ if(i!==skip) o[cmKey(p[0],p[1])]="R"+i; }); if(skip!=="K") o[cmKey(st.k[0],st.k[1])]="K"; return o; }
+// squares the rooks attack (skipKing: let lines pass through the King's square, so he can't hide "behind" himself)
+function cmAttacked(st,skipKing,skipRook){
+  const occ=cmOcc(st,skipKing?"K":undefined); if(skipRook!==undefined) delete occ[cmKey(st.rooks[skipRook][0],st.rooks[skipRook][1])];
+  const att=new Set();
+  st.rooks.forEach((p,i)=>{ if(i===skipRook) return;
+    for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){ let r=p[0]+dr,c=p[1]+dc; while(inB(r,c)){ att.add(cmKey(r,c)); if(occ[cmKey(r,c)]) break; r+=dr; c+=dc; } } });
+  return att;
+}
+const cmInCheck=st=>cmAttacked(st,false).has(cmKey(st.k[0],st.k[1]));
+function cmKingMoves(st){
+  const out=[], att=cmAttacked(st,true);
+  for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ if(!dr&&!dc) continue; const r=st.k[0]+dr,c=st.k[1]+dc; if(!inB(r,c)) continue;
+    const ri=st.rooks.findIndex(p=>p[0]===r&&p[1]===c);
+    if(ri>=0){ const st2={k:[r,c],rooks:st.rooks}; if(!cmAttacked(st2,true,ri).has(cmKey(r,c))) out.push({r,c,take:ri}); }   // can grab an unprotected Rook
+    else if(!att.has(cmKey(r,c))) out.push({r,c}); }
+  return out;
+}
+function cmRookMoves(st,i){
+  const occ=cmOcc(st), p=st.rooks[i], out=[];
+  for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){ let r=p[0]+dr,c=p[1]+dc; while(inB(r,c)&&!occ[cmKey(r,c)]){ out.push([r,c]); r+=dr; c+=dc; } }
+  return out;
+}
+function cmRoom(st){ // how many squares the King can still roam (smaller = more trapped)
+  const att=cmAttacked(st,true), seen=new Set([cmKey(st.k[0],st.k[1])]), q=[st.k];
+  while(q.length){ const [r,c]=q.pop(); for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ const a=r+dr,b=c+dc, k=cmKey(a,b); if(inB(a,b)&&!seen.has(k)&&!att.has(k)){ seen.add(k); q.push([a,b]); } } }
+  return seen.size;
+}
+function cmNewBoard(){
+  for(let t=0;t<500;t++){
+    const k=[rand(2,5),rand(2,5)], rooks=[[rand(0,7),rand(0,7)],[rand(0,7),rand(0,7)]], st={k,rooks};
+    const keys=new Set([cmKey(...k),cmKey(...rooks[0]),cmKey(...rooks[1])]); if(keys.size<3) continue;
+    if(rooks.some(p=>Math.abs(p[0]-k[0])<=2&&Math.abs(p[1]-k[1])<=2)) continue;
+    if(cmInCheck(st)||cmKingMoves(st).length<5) continue;
+    return st;
+  }
+  return {k:[3,4],rooks:[[7,0],[7,7]]};
+}
+function cmKingAI(st){
+  const ms=cmKingMoves(st); if(!ms.length) return null;
+  const take=ms.find(m=>m.take!==undefined); if(take) return take;
+  ms.forEach(m=>{ const st2={k:[m.r,m.c],rooks:st.rooks}; m.s=cmRoom(st2)*2+cmKingMoves(st2).length-(Math.abs(m.r-3.5)+Math.abs(m.c-3.5))*.5+Math.random()*1.5; });
+  return ms.sort((a,b)=>b.s-a.s)[0];
+}
+function startCheckmate(){ Object.assign(G,{cm:cmNewBoard(),moves:0,boards:1,mated:false}); checkmateNext(); }
+function cmProgress(){ if(G.mated) return 100; return Math.max(0,Math.min(95,Math.round((1-(cmRoom(G.cm)-1)/40)*95))); }
+function cmBoardHTML(sel,targets){
+  const st=G.cm, ts=new Set((targets||[]).map(t=>cmKey(t[0],t[1]))), check=cmInCheck(st);
+  let h=`<div class="cmboard ${sel!=null||targets?"live":""}">`;
+  for(let r=0;r<CM_N;r++) for(let c=0;c<CM_N;c++){ const k=cmKey(r,c), ri=st.rooks.findIndex(p=>p[0]===r&&p[1]===c), isK=st.k[0]===r&&st.k[1]===c;
+    const cls=((r+c)%2?"dk":"lt")+(ts.has(k)?" tgt":"")+(ri===sel&&ri>=0?" sel":"")+(isK&&check?" chk":"");
+    const click=ts.has(k)?`cmMove(${r},${c})`:ri>=0&&targets!==undefined?`cmSelect(${ri})`:"";
+    h+=`<div class="sq ${cls}" ${click?`onclick="${click}"`:""}>${ri>=0?rookSVG(S.equipped,40):isK?`<span class="wk">♔</span>`:""}</div>`; }
+  return h+"</div>";
+}
+function cmTop(){ return G.live?liveHud():hud(`♔ Board ${G.boards}`,`Moves ${G.moves}`); }
+function checkmateNext(){
+  if(!G||G.mode!=="checkmate"||G.over) return;
+  if(G.mated) return G.live?(pushLive(),app.innerHTML=`<div class="card fade" style="text-align:center"><h1>♜ CHECKMATE!</h1><div class="bob">${rookSVG(S.equipped,120)}</div><p>You trapped the King first! Waiting for results…</p></div>`):checkmateEnd();
+  ask(`${cmTop()}<div class="cmwrap">${cmBoardHTML()}</div><div class="feedback small">${cmInCheck(G.cm)?"⚠️ The King is in CHECK! ":""}Answer right to move a Rook</div>`,20,500,right=>{
+    if(!G||G.over) return; G.total++;
+    if(right){ G.correct++; G.cmSel=null; cmSelect(null); }
+    else { toast("❌ Wrong — the King moves for free!"); cmKingTurn(); }
+  });
+}
+function cmSelect(i){
+  if(!G||G.over) return; G.cmSel=i; const targets=i==null?[]:cmRookMoves(G.cm,i);
+  app.innerHTML=`<div class="fade">${cmTop()}<div class="feedback">${i==null?"✅ Tap one of your Rooks":"Tap a glowing square to move there"}</div><div class="cmwrap">${cmBoardHTML(i,targets)}</div>
+    <p class="muted small" style="text-align:center">Rooks slide in straight lines. Trap the ♔ King so he's in check and can't escape. Careful — he can grab a Rook that isn't protected!</p></div>`;
+}
+function cmMove(r,c){
+  if(!G||G.cmSel==null) return; const i=G.cmSel;
+  if(!cmRookMoves(G.cm,i).some(t=>t[0]===r&&t[1]===c)) return;
+  G.cm.rooks[i]=[r,c]; G.moves++; G.cmSel=null; Music.sfx("good");
+  if(!cmKingMoves(G.cm).length){
+    if(cmInCheck(G.cm)){ G.mated=true; Music.sfx("win"); confetti(); if(G.live) pushLive();
+      app.innerHTML=`<div class="fade">${cmTop()}<div class="feedback">♜ CHECKMATE! ♜</div><div class="cmwrap">${cmBoardHTML()}</div></div>`; return setTimeout(checkmateNext,1800); }
+    toast("🤝 Stalemate — the King can't move but isn't in check. New board!"); G.cm=cmNewBoard(); G.boards++; if(G.live) pushLive(); return setTimeout(checkmateNext,900);
+  }
+  cmKingTurn();
+}
+function cmKingTurn(){
+  const m=cmKingAI(G.cm);
+  if(m){ G.cm.k=[m.r,m.c];
+    if(m.take!==undefined){ app.innerHTML=`<div class="fade">${cmTop()}<div class="feedback">😱 The King grabbed your Rook! New board…</div><div class="cmwrap">${cmBoardHTML()}</div></div>`;
+      G.cm=cmNewBoard(); G.boards++; if(G.live) pushLive(); return setTimeout(checkmateNext,1700); } }
+  if(G.live) pushLive();
+  app.innerHTML=`<div class="fade">${cmTop()}<div class="feedback small">♔ The King moves…</div><div class="cmwrap">${cmBoardHTML()}</div></div>`;
+  setTimeout(checkmateNext,700);
+}
+function checkmateEnd(){
+  stopTimers(); G.over=true; G.locked=true; Music.stop();
+  const earned=reward(G.correct,G.set), idx=allSets().findIndex(s=>s.title===G.set.title);
+  addStat("games"); addStat("correct",G.correct); addStat("wins"); S.tokens+=earned; save();
+  app.innerHTML=`<div class="card fade" style="text-align:center"><h1>♜ Checkmate!</h1><div class="bob">${rookSVG(S.equipped,120)}</div>
+    <p>You trapped the King in ${G.moves} moves · ${G.correct} right</p><h2 class="pop">+${earned} 🪙 tokens</h2>
+    <div class="row"><button class="btn red big" onclick="startGame(${idx},'checkmate')">Play Again</button><button class="btn big" onclick="go('play')">New Set</button></div></div>`;
+}
+
+// ====================================================================
+//  CASTLE RAID chests (shared by solo + live)
+// ====================================================================
+const RAID_LOOT=[
+  {w:34,ic:"🪙",f:g=>{ const n=[10,15,20,25,30,40][rand(0,5)]; return {gold:g+n,msg:`+${n} gold!`}; }},
+  {w:11,ic:"✖️",f:g=>({gold:g*2,msg:"DOUBLE gold! ✖️2"})},
+  {w:3, ic:"👑",f:g=>({gold:g*3,msg:"ROYAL TREASURE! ✖️3"})},
+  {w:9, ic:"💰",f:g=>({gold:Math.floor(g*1.5)+5,msg:"Gold Rush! +50%"})},
+  {w:10,ic:"💣",f:g=>({gold:g-Math.floor(g*.25),msg:`Trap! Lost ${Math.floor(g*.25)} gold`,bad:1})},
+  {w:11,ic:"😈",act:"steal"},
+  {w:6, ic:"🔄",act:"swap"},
+  {w:5, ic:"🏹",act:"raid"},
+  {w:6, ic:"🛡️",act:"shield"},
+  {w:5, ic:"🦴",f:g=>({gold:g,msg:"Nothing… just a bone 🦴",bad:1})},
+];
+function rollLoot(){ let r=Math.random()*RAID_LOOT.reduce((t,x)=>t+x.w,0); for(const x of RAID_LOOT){ if(r<x.w) return x; r-=x.w; } return RAID_LOOT[0]; }
+function raidChests(onclick){ return `<div class="feedback">✅ Correct! Pick a chest</div><div class="chests">${[0,1,2].map(k=>`<div class="chest" id="ch${k}" onclick="${onclick}(${k})">🎁</div>`).join("")}</div>`; }
+function chestOpenAnim(k,cb){
+  document.querySelectorAll(".chest").forEach((c,i)=>{ c.onclick=null; c.classList.add(i===k?"opening":"dimmed"); });
+  setTimeout(cb,750);
+}
+function raidResult(ic,msg,bad,next){
+  showModal(`<div class="pop" style="font-size:70px">${ic}</div><h2>${msg}</h2><p style="font-size:24px;margin:10px 0">💰 ${G.gold}${G.shield?" 🛡️":""}</p><button class="btn red" onclick="closeModal();G.chestOpen=false;${next}()">Next ▶</button>`);
+  Music.sfx(bad?"bad":"good");
+}
+
 // --- results for bot modes
 function finish(key,unit){
   stopTimers(); Music.stop(); Music.sfx("win");
@@ -1382,10 +1692,31 @@ function market(){
         ${st.ok?`<button class="btn" onclick="buy(${i})">🪙 ${price}${price<b.price?` <s>${b.price}</s>`:""}</button>`:`<button class="btn" disabled>🔒 Locked</button>`}</div>`; }).join("")}</div>
     <h2 style="margin-top:22px">Odds</h2><p class="muted">${RARITIES.filter(k=>RARITY_ODDS[k]).map(k=>`<span class="rar ${k}">${k}</span> ${RARITY_ODDS[k]}%`).join(" · ")}<br>Any box can drop a super-rare Chroma Rook!<br><b>Rook Pack:</b> <span class="rar Unique">Unique</span> 0.012%</p></div>`;
 }
+const RAR_GLOW={Common:"#9ca3af",Uncommon:"#2a9d8f",Rare:"#3b82f6",Epic:"#a855f7",Legendary:"#f77f00",Chroma:"#f0abfc",Unique:"#facc15",Mystical:"#a855f7"};
+let BOXT=[];
+function openBoxAnim(b,got,done){
+  BOXT.forEach(clearTimeout); BOXT=[];
+  const rar=R[got][1], big=["Legendary","Chroma","Unique","Mystical"].includes(rar), glow=RAR_GLOW[rar]||"#fff";
+  let finished=false; const fin=()=>{ if(finished) return; finished=true; BOXT.forEach(clearTimeout); BOXT=[]; Music.sfx(big?"shine":"whoosh"); done(); };
+  showModal(`<div class="boxopen" onclick="BOXSKIP()" style="--glow:${glow}"><div class="boxic s1" id="boxic">${b.ic}</div><div class="boxtxt" id="boxtxt">Opening…</div><div class="flash" id="boxflash"></div></div><p class="muted small">tap to skip</p>`);
+  window.BOXSKIP=fin;
+  const st=(ms,f)=>BOXT.push(setTimeout(f,ms)), el=id=>document.getElementById(id);
+  [0,250,500].forEach(t=>st(t,()=>Music.sfx("tick")));
+  st(700,()=>{ const e=el("boxic"); if(e) e.className="boxic s2"; });
+  [750,900,1050,1200].forEach(t=>st(t,()=>Music.sfx("tick")));
+  if(big){
+    st(1400,()=>{ const e=el("boxic"), t=el("boxtxt"); if(e) e.className="boxic s3"; if(t) t.textContent="!!!"; Music.sfx("riser"); });
+    st(2700,()=>{ const f=el("boxflash"); if(f) f.classList.add("on"); });
+    st(2950,fin);
+  } else {
+    st(1350,()=>{ const f=el("boxflash"); if(f) f.classList.add("on"); });
+    st(1550,fin);
+  }
+}
 function reveal(name,isNew,extraBtns){
   const rar=R[name][1];
   if(["Epic","Legendary","Chroma","Unique","Mystical"].includes(rar)||isNew) confetti();
-  showModal(`<div class="reveal ${rar} pop">${rookSVG(name,150)}</div><h2>${esc(name)}</h2>
+  showModal(`<div class="rays ${rar}"><div class="reveal ${rar} pop">${rookSVG(name,150)}</div></div><h2 class="pop">${esc(name)}</h2>
     <div class="rar ${rar}" style="font-size:18px">${rar}</div><p style="margin:8px 0">${isNew?"🎉 NEW ROOK!":"You have "+S.owned[name]}</p>
     <div class="row">${extraBtns||""}<button class="btn" onclick="closeModal();market()">Done</button></div>`);
 }
@@ -1401,8 +1732,7 @@ function buy(i){
   if(!pool.length) pool=ROOKS.filter(r=>r[5]===b.name&&r[1]==="Common");
   const got=pool[rand(0,pool.length-1)][0], isNew=!S.owned[got];
   S.owned[got]=(S.owned[got]||0)+1; addStat("boxes"); save();
-  showModal(`<div class="shake" style="font-size:96px">${b.ic}</div><p class="muted">Opening…</p>`);
-  setTimeout(()=>reveal(got,isNew,`<button class="btn red" onclick="buy(${i})">Open another (🪙${price})</button>`),1100);
+  openBoxAnim(b,got,()=>reveal(got,isNew,`<button class="btn red" onclick="buy(${i})">Open another (🪙${price})</button>`));
 }
 function buySpecial(){
   const sp=special(); if(S.specialWk===sp.wk) return;
@@ -1450,8 +1780,6 @@ function sacrifice(){
   if(!canSacrifice()) return closeModal();
   all.forEach(r=>takeR(r[0])); addR(SECRET); save();   // the trade is saved first, so skipping or closing can't lose it
   closeModal();
-  try{ const fs=document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen({navigationUI:"hide"});
-    if(fs&&fs.then) fs.then(()=>{ try{ navigator.keyboard&&navigator.keyboard.lock&&navigator.keyboard.lock(); }catch(e){} }).catch(()=>{}); }catch(e){}
   lastStand(all.map(r=>r[0])).then(revealTheRook);
 }
 function revealTheRook(){
@@ -1473,6 +1801,9 @@ function cutsceneGroups(uid,names){
     const a=[...g]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; });
 }
 const outerRing=uid=>cutsceneGroups(uid,sacList().map(r=>r[0]))[0];   // Commons, clockwise from the top
+function playerCode(uid){ const a=hashStr("pc1-"+uid).toString(36).toUpperCase().padStart(7,"0"), b=hashStr("pc2-"+uid).toString(36).toUpperCase().padStart(7,"0"); return "RP-"+a.slice(-5)+"-"+b.slice(-5); }
+const GLOW_BEATS=32;   // 2^32 = 4,294,967,296 different patterns
+function glowPattern(uid){ const rng=mulberry32(hashStr("glow-pattern-"+uid)); return Array.from({length:GLOW_BEATS},()=>rng()<.5?1:0); }   // 1 = bright, 0 = dim
 function lastStand(allNames){
   const ORDER=CUT_ORDER;
   const groups=cutsceneGroups(UID||"guest",allNames);
@@ -1492,14 +1823,12 @@ function lastStand(allNames){
   return new Promise(done=>{
     let skipped=false, finished=false;
     const el=document.createElement("div"); el.className="cine";
-    let unguard=()=>{};
-    const end=(fast)=>{ if(finished) return; finished=true; unguard();
-      try{ navigator.keyboard&&navigator.keyboard.unlock&&navigator.keyboard.unlock(); }catch(e){}
-      try{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); }catch(e){} el.style.transition=`opacity ${fast?.25:.7}s`; el.style.opacity=0; setTimeout(()=>{ el.remove(); done(); },fast?250:700); };
+    const end=(fast)=>{ if(finished) return; finished=true; el.style.transition=`opacity ${fast?.25:.7}s`; el.style.opacity=0; setTimeout(()=>{ el.remove(); done(); },fast?250:700); };
     const wait=ms=>new Promise(r=>setTimeout(r,ms));
     const box=(x,y,s)=>`left:${x}%;top:${y}%;width:${s}%;height:${s}%;margin-left:${-s/2}%;margin-top:${-s/2}%`;
     el.innerHTML=`<div class="bar t"></div><div class="bar b"></div>
       <div class="stage" id="cs"><div class="cboard">${[...Array(64)].map((_,i)=>`<div class="${Math.floor(i/8)%2?"alt":""}"></div>`).join("")}</div>
+        <div class="glowfp" id="glowfp"></div>
         <div class="aura" id="aura"></div>
         ${rooksAt.map((p,i)=>`<div class="ob" id="r${i}" style="${box(p.x,p.y,p.size)}">${rookSVG(p.name,60)}</div>`).join("")}
         ${whites.map((w,i)=>{ const p=at(w.a,78); return `<div class="ob wpc" id="w${i}" style="${box(p.x,p.y,6)}">${w.g}</div>`; }).join("")}
@@ -1507,39 +1836,9 @@ function lastStand(allNames){
         <div class="wave" id="wave"></div></div>
       <div class="cap" id="cap"></div><div class="flash" id="fl"></div>
       <button class="skip">Skip ⏭</button>
-      <div class="mbox" id="mbox"><b>🖱️ Keep your mouse here</b><small>Moving it, clicking or pressing a key ends the cutscene</small></div>`;
+      <div class="pcode">${esc(playerCode(UID||"guest"))}</div>`;
     document.body.appendChild(el);
     el.querySelector(".skip").onclick=()=>{ skipped=true; Music.stop(); Music.hush(); Music.cineStop(null,400); end(); };
-    // ---- anti-capture: the cutscene only plays while the mouse stays in the box ----
-    const mb=el.querySelector("#mbox");
-    let guardT0=0;
-    const abort=(why)=>{ if(finished||skipped) return; skipped=true; el.classList.add("blackout");
-      if(MODE==="fb"&&!TEST&&UID) FB.logIncident({uid:UID,name:NAME(),why,secs:Math.round((Date.now()-guardT0)/1000)}).catch(()=>{});
-      Music.stop(); Music.hush(); Music.cineStop(null,150); end(true); setTimeout(()=>toast(`⛔ Cutscene stopped — ${why}`),300); };
-    let touchMode=false;
-    const gate=()=>new Promise(res=>{
-      mb.classList.add("wait");
-      const go=(touch)=>{ if(mb.classList.contains("on")) return; touchMode=touch; mb.classList.remove("wait"); mb.classList.add("on");
-        mb.querySelector("b").textContent=touch?"👆 Keep holding here":"🖱️ Keep your mouse here"; res(true); };
-      mb.addEventListener("pointerenter",e=>{ if(e.pointerType==="mouse") go(false); });
-      mb.addEventListener("pointerdown",e=>{ if(e.pointerType!=="mouse"){ e.preventDefault(); go(true); } });
-      // if the mouse is already resting inside the box
-      mb.addEventListener("pointermove",e=>{ if(e.pointerType==="mouse") go(false); });
-    });
-    const guard=()=>{
-      const offs=[];
-      const on=(t,ev,fn,o)=>{ t.addEventListener(ev,fn,o); offs.push(()=>t.removeEventListener(ev,fn,o)); };
-      on(mb,"pointerleave",e=>{ if(!touchMode||e.pointerType!=="mouse") abort(touchMode?"you let go of the box":"your mouse left the box"); });
-      on(window,"pointerup",e=>{ if(touchMode&&e.pointerType!=="mouse") abort("you let go of the box"); },true);
-      on(window,"pointercancel",()=>abort("you let go of the box"),true);
-      on(window,"pointerdown",e=>{ if(!(touchMode&&e.pointerType!=="mouse"&&e.isPrimary)) abort("you clicked"); },true);
-      on(window,"contextmenu",e=>{ e.preventDefault(); abort("you clicked"); },true);
-      on(window,"keydown",e=>{ e.preventDefault(); abort("you pressed a key"); },true);
-      on(window,"blur",()=>abort("you left the page"));
-      on(document,"visibilitychange",()=>{ if(document.visibilityState!=="visible") abort("you left the page"); });
-      on(document,"fullscreenchange",()=>{ if(!document.fullscreenElement) abort("you left full screen"); });
-      unguard=()=>offs.forEach(f=>f());
-    };
     const $=id=>el.querySelector("#"+id), stage=$("cs");
     const cap=async(t,ms)=>{ if(skipped) return; const c=$("cap"); c.style.opacity=0; await wait(350); c.textContent=t; c.style.opacity=t?1:0; if(ms){ await wait(ms); c.style.opacity=0; } };
     const shake=(cls="shk")=>{ stage.classList.remove("shk","shk2"); void stage.offsetWidth; stage.classList.add(cls); };
@@ -1569,10 +1868,13 @@ function lastStand(allNames){
     const hideCap=()=>{ $("cap").style.opacity=0; };
     (async()=>{
       Music.preloadCine();
-      $("cap").textContent="Put your mouse in the box to begin"; $("cap").style.opacity=1;
-      await gate(); if(skipped) return;
-      $("cap").style.opacity=0; el.querySelector(".skip").style.display="none";   // clicks now end it anyway
-      guard(); guardT0=Date.now();
+      // secret glow code: 2 quick "start" flashes, then 32 bright/dim beats unique to this account
+      (async()=>{ const g=$("glowfp"), pat=glowPattern(UID||"guest");
+        const set=v=>{ if(!skipped) g.style.opacity=v; };
+        await wait(400); for(let k=0;k<2;k++){ set(1); await wait(160); set(0); await wait(160); }
+        await wait(500);
+        for(const bit of pat){ if(skipped) return; set(bit?1:.18); await wait(300); set(0); await wait(100); }
+        set(0); })();
       const song=await Music.cine("build");
       if(!song) Music.play("battle");                 // no song? use the synth soundtrack
       await wait(700);
@@ -1773,7 +2075,9 @@ async function settleTrades(quiet){
 let LIVE=null;
 const LIVE_MODES=[
   {id:"classic",name:"Classic",ic:"⚡",desc:"Faster answers = more points."},
-  {id:"quest",name:"Pup Quest",ic:"🎁",desc:"Open chests, steal gold from classmates!"},
+  {id:"quest",name:"Castle Raid",ic:"🏰",desc:"Open chests: steal, swap, raid your classmates… or get a shield!"},
+  {id:"battle",name:"Rook Battles",ic:"⚔️",desc:"Max 10 players. Fight up from Common to Chroma — first to the Chroma wins, or furthest when time's up."},
+  {id:"checkmate",name:"Checkmate",ic:"♜",desc:"Right answers move your Rooks. First to checkmate the King wins, or most-trapped King when time's up."},
   {id:"race",name:"Rook Race",ic:"🏁",desc:"First Rook to the flag wins. Game ends when someone finishes."},
 ];
 function leaveLive(){ if(!LIVE) return; LIVE.unsubs.forEach(f=>{try{f()}catch(e){}}); clearInterval(LIVE.clock); LIVE=null; }
@@ -1809,10 +2113,11 @@ function hostLobby(code){
   LIVE.unsubs.push(FB.watchGame(code,g=>{ if(!LIVE||LIVE.code!==code) return; const was=LIVE.game&&LIVE.game.status; LIVE.game=g; if(g&&g.status==="playing"&&was!=="playing") startHostClock(); renderHost(); }));
   LIVE.unsubs.push(FB.watchPlayers(code,ps=>{ if(!LIVE||LIVE.code!==code) return; LIVE.players=ps; checkRaceEnd(); renderHost(); }));
 }
-const liveKey=g=>g&&g.mode==="race"?"pos":"score";
+const POSMODES=["race","battle","checkmate"];
+const liveKey=g=>g&&POSMODES.includes(g.mode)?"pos":"score";
 const sortP=(ps,g)=>[...ps].sort((a,b)=>(b[liveKey(g)]||0)-(a[liveKey(g)]||0)||(b.correct||0)-(a.correct||0));
-const unitFor=g=>g.mode==="race"?"🏁":g.mode==="quest"?"💰":"⚡";
-const fmtScore=(p,g)=>g.mode==="race"?Math.min(p.pos||0,100)+"%":(p.score||0).toLocaleString();
+const unitFor=g=>({race:"🏁",quest:"💰",battle:"⚔️",checkmate:"♜"})[g.mode]||"⚡";
+const fmtScore=(p,g)=>g.mode==="battle"?(p.pos>=100?"🌈 Champion":BAT_RARS[p.lvl||0]||"Common"):g.mode==="checkmate"?(p.pos>=100?"Checkmate!":Math.min(p.pos||0,100)+"% trapped"):g.mode==="race"?Math.min(p.pos||0,100)+"%":(p.score||0).toLocaleString();
 function renderHost(){
   if(!LIVE||LIVE.role!=="host") return;
   const g=LIVE.game, ps=LIVE.players, code=LIVE.code;
@@ -1829,7 +2134,7 @@ function renderHost(){
     const sorted=sortP(ps,g);
     app.innerHTML=`<div class="card fade"><div class="playtop"><div><h1>${m.ic} ${m.name} · code ${code}</h1><p class="muted">${esc(g.set.title)} · ${ps.length} players</p></div>
       <div class="row">${g.mode!=="race"?`<div class="bigclock">⏱️ <span id="hclock">${clockText(g.endsAt)}</span></div>`:""}<button class="btn red" onclick="endLive()">End game</button></div></div>
-      ${g.mode==="race"?`<div class="track">${sorted.map(p=>`<div class="lane"><span class="lname">${esc(p.name)}</span><div class="runner" style="left:${Math.min(p.pos||0,100)*.86}%">${rookSVG(p.rook,40)}</div><span class="flag">🏁</span></div>`).join("")}</div>`
+      ${POSMODES.includes(g.mode)?`<div class="track">${sorted.map(p=>`<div class="lane"><span class="lname">${esc(p.name)}</span><div class="runner" style="left:${Math.min(p.pos||0,100)*.86}%">${rookSVG(p.rook,40)}</div><span class="flag">${g.mode==="battle"?"🌈":g.mode==="checkmate"?"♔":"🏁"}</span>${g.mode!=="race"?`<span class="lstat">${fmtScore(p,g)}</span>`:""}</div>`).join("")}</div>`
       :`<div class="lb">${sorted.map((p,i)=>`<div><b>#${i+1}</b><span class="pl">${rookSVG(p.rook,34)}${esc(p.name)}</span><span class="muted small">${p.correct||0}/${p.total||0} right</span><span>${unitFor(g)} ${fmtScore(p,g)}</span></div>`).join("")}</div>`}</div>`;
   } else {
     stopTimers(); if(!LIVE.confetti){ Music.stop(); Music.sfx("win"); }
@@ -1845,7 +2150,7 @@ function startHostClock(){
   gTimer=setInterval(()=>{ if(!LIVE||!LIVE.game) return; const g=LIVE.game; const el=document.getElementById("hclock"); if(el) el.textContent=clockText(g.endsAt);
     if(g.mode!=="race"&&g.endsAt&&Date.now()>=g.endsAt) endLive(); },500);
 }
-function checkRaceEnd(){ const g=LIVE&&LIVE.game; if(g&&g.mode==="race"&&g.status==="playing"&&LIVE.players.some(p=>(p.pos||0)>=100)) endLive(); }
+function checkRaceEnd(){ const g=LIVE&&LIVE.game; if(g&&POSMODES.includes(g.mode)&&g.status==="playing"&&LIVE.players.some(p=>(p.pos||0)>=100)) endLive(); }
 async function startLive(){ const g=LIVE.game; Music.play("game"); try{ await FB.updateGame(LIVE.code,{status:"playing",started:Date.now(),endsAt:g.mode==="race"?0:Date.now()+g.mins*60000}); }catch(e){ toast("Couldn't start — try again"); } }
 async function endLive(cancel){ if(!LIVE||LIVE.ended) return; LIVE.ended=true; try{ await FB.updateGame(LIVE.code,{status:"ended",ended:Date.now()}); }catch(e){ LIVE.ended=false; toast("Couldn't end — try again"); return; } if(cancel) go("host"); }
 function podium(sorted,g){
@@ -1870,6 +2175,7 @@ async function joinCode(code){
   if(!g) return toast("No game with that code 🤔");
   if(g.status==="ended") return toast("That game is already over");
   if(g.host===UID) return hostLobby(code);
+  if(g.mode==="battle"){ let ps=[]; try{ ps=await FB.getPlayers(code); }catch(e){} if(ps.length>=10&&!ps.some(p=>p.id===UID)) return toast("This battle is full — 10 players max ⚔️"); }
   try{ await FB.joinGame(code,UID,{name:NAME(),title:S.title||"",rook:S.equipped,score:0,correct:0,total:0,pos:0,joined:Date.now()}); }
   catch(e){ return toast("Couldn't join — try again"); }
   studentLive(code,g);
@@ -1886,7 +2192,10 @@ function studentLive(code,g){
   }));
   LIVE.unsubs.push(FB.watchEvents(code,UID,ev=>{
     if(!LIVE||LIVE.seen[ev.id]||!G) return; LIVE.seen[ev.id]=1;
-    if(ev.type==="steal"){ const amt=Math.min(ev.amount,G.gold); G.gold-=amt; pushLive(); toast(`😱 ${ev.fromName} stole ${amt} gold from you!`); const el=document.getElementById("mygold"); if(el) el.textContent=G.gold; }
+    if(ev.type==="steal"||ev.type==="swap"){ if(G.shield){ G.shield=false; pushLive(); return toast(`🛡️ Your shield blocked ${ev.fromName}'s ${ev.type}!`); } }
+    if(ev.type==="steal"||ev.type==="raid"){ const amt=Math.min(ev.amount,G.gold); G.gold-=amt; pushLive(); toast(ev.type==="raid"?`🏹 ${ev.fromName} raided you for ${amt} gold!`:`😱 ${ev.fromName} stole ${amt} gold from you!`); }
+    if(ev.type==="swap"){ G.gold=ev.amount; pushLive(); toast(`🔄 ${ev.fromName} swapped gold with you! You now have ${G.gold}`); }
+    const el=document.getElementById("mygold"); if(el) el.textContent=G.gold;
   }));
   if(g.status==="lobby") waitScreen();
   else if(g.status==="playing") liveStart();
@@ -1903,25 +2212,31 @@ function liveStart(){
   if(!LIVE||LIVE.started) return;
   const g=LIVE.game; LIVE.started=true; Music.play("game");
   G={set:g.set,mode:g.mode,live:true,deck:[],n:0,gold:0,pts:0,pos:0,correct:0,total:0,streak:0,bots:[]};
+  if(g.mode==="battle"){ const L=battleLadder(); Object.assign(G,{box:L.box,lad:L.lad,lvl:0,rounds:0,wins:0,kos:0,hp:BAT_HP.Common,ehp:BAT_HP.Uncommon}); toast(`⚔️ Your pack: ${boxLabel(L.box.name)} — you start as ${L.lad[0]}!`); }
+  if(g.mode==="checkmate") Object.assign(G,{cm:cmNewBoard(),moves:0,boards:1,mated:false});
   if(g.mode!=="race"){
     gTimer=setInterval(()=>{ if(!LIVE||!G) return; const el=document.getElementById("gclock"); if(el) el.textContent=clockText(LIVE.game.endsAt);
       if(LIVE.game.endsAt&&Date.now()>=LIVE.game.endsAt+1500&&!G.over){ G.over=true; timesUp(); } },400);
   }
   liveNext();
 }
+function livePos(){ return G.mode==="battle"?batProgress():G.mode==="checkmate"?cmProgress():G.pos; }
 function liveScore(){ return G.mode==="classic"?G.pts:G.mode==="quest"?G.gold:G.pos; }
 function pushLive(){
   if(!LIVE||LIVE.role!=="student"||!G) return;
-  FB.updatePlayer(LIVE.code,UID,{score:G.mode==="classic"?G.pts:G.gold,pos:G.pos,correct:G.correct,total:G.total,rook:S.equipped})
+  FB.updatePlayer(LIVE.code,UID,{score:G.mode==="classic"?G.pts:G.gold,pos:livePos(),lvl:G.lvl||0,shield:!!G.shield,correct:G.correct,total:G.total,rook:G.mode==="battle"?batMe():S.equipped})
     .catch(e=>{ if(LIVE&&!LIVE.done&&String(e&&e.code).includes("not-found")){ toast("You were removed from the game"); go("home"); } });
 }
 function liveHud(){
   const g=LIVE.game;
   if(g.mode==="race") return `<div class="hud"><div class="me">${rookSVG(S.equipped,46)} ${esc(NAME())}</div><div>🏁 ${Math.min(G.pos,100)}%</div><div>✅ ${G.correct}</div></div><div class="prog"><div style="width:${Math.min(G.pos,100)}%"></div></div>`;
-  return hud(`⏱️ <span id="gclock">${clockText(g.endsAt)}</span>`,g.mode==="quest"?`💰 <span id="mygold">${G.gold}</span>`:`⚡ ${G.pts.toLocaleString()}`);
+  if(g.mode==="checkmate") return hud(`⏱️ <span id="gclock">${clockText(g.endsAt)}</span>`,`♜ ${G.moves} moves`);
+  return hud(`⏱️ <span id="gclock">${clockText(g.endsAt)}</span>`,g.mode==="quest"?`💰 <span id="mygold">${G.gold}</span>${G.shield?" 🛡️":""}`:`⚡ ${G.pts.toLocaleString()}`);
 }
 function liveNext(){
   if(!LIVE||!G||G.over||LIVE.done) return;
+  if(G.mode==="battle") return battleNext();
+  if(G.mode==="checkmate") return checkmateNext();
   if(G.mode==="race"&&G.pos>=100){ app.innerHTML=`<div class="card fade" style="text-align:center"><h1>🏁 You finished!</h1><div class="bob">${rookSVG(S.equipped,120)}</div><p>Waiting for results…</p></div>`; return; }
   ask(liveHud(),20,800,(right,t)=>{
     if(!G||G.over) return;
@@ -1929,33 +2244,47 @@ function liveNext(){
     if(G.mode==="classic"){ if(right){ G.correct++; const got=Math.max(500,Math.round(1000-t*25)); G.pts+=got; toast(`+${got}`,"good"); } pushLive(); liveNext(); }
     else if(G.mode==="race"){ if(right){ G.correct++; G.pos+=8+Math.max(0,Math.round(6-t/1.5)); } pushLive(); liveNext(); }
     else { if(right){ G.correct++; pushLive();
-        app.innerHTML=`<div class="fade">${liveHud()}<div class="feedback">✅ Correct! Pick a chest</div><div class="chests">${[0,1,2].map(()=>`<div class="chest" onclick="liveChest()">🎁</div>`).join("")}</div></div>`;
+        app.innerHTML=`<div class="fade">${liveHud()}${raidChests("liveChest")}</div>`;
       } else { pushLive(); liveNext(); } }
   });
 }
-async function liveChest(){
+async function liveChest(k){
   if(!G||G.chestOpen) return; G.chestOpen=true;
-  const r=Math.random(); let msg, good=true;
-  if(r<.45){ const n=[10,15,20,25,30,40][rand(0,5)]; G.gold+=n; msg=`+${n} gold!`; }
-  else if(r<.57){ G.gold*=2; msg="DOUBLE gold! ✖️2"; }
-  else if(r<.67){ G.gold=Math.floor(G.gold*1.5)+5; msg="Gold Rush! +50%"; }
-  else if(r<.79){ const lost=Math.floor(G.gold*.25); G.gold-=lost; msg=`Oh no! Lost ${lost} gold`; good=false; }
-  else if(r<.93){ return liveSteal(); }
-  else { msg="Nothing… just a bone 🦴"; good=false; }
-  pushLive();
-  showModal(`<div style="font-size:60px">${good?"🤑":"😬"}</div><h2>${msg}</h2><p style="font-size:22px;margin:10px 0">💰 ${G.gold}</p><button class="btn red" onclick="closeModal();G.chestOpen=false;liveNext()">Next ▶</button>`);
+  chestOpenAnim(k,()=>{
+    const L=rollLoot();
+    if(L.f){ const r=L.f(G.gold); G.gold=r.gold; pushLive(); return raidResult(L.ic,r.msg,r.bad,"liveNext"); }
+    if(L.act==="shield"){ G.shield=true; pushLive(); return raidResult("🛡️","Shield! Your next steal or swap is blocked",0,"liveNext"); }
+    if(L.act==="raid") return liveRaid();
+    liveTarget(L.act);
+  });
 }
-async function liveSteal(){
-  showModal(`<h2>😈 STEAL!</h2><p class="muted">Loading players…</p>`);
-  let ps=[]; try{ ps=(await FB.getPlayers(LIVE.code)).filter(p=>p.id!==UID); }catch(e){}
-  if(!ps.length){ G.gold+=20; pushLive(); return showModal(`<h2>No one to steal from!</h2><p>Have 20 gold instead.</p><button class="btn red" onclick="closeModal();G.chestOpen=false;liveNext()">Next ▶</button>`); }
+async function livePlayersBut(){ try{ return (await FB.getPlayers(LIVE.code)).filter(p=>p.id!==UID); }catch(e){ return []; } }
+async function liveTarget(act){
+  showModal(`<h2>${act==="steal"?"😈 STEAL!":"🔄 SWAP!"}</h2><p class="muted">Loading players…</p>`);
+  const ps=await livePlayersBut();
+  if(!ps.length){ G.gold+=20; pushLive(); return raidResult("🪙","No one to pick! Have 20 gold instead.",0,"liveNext"); }
   ps.sort((a,b)=>(b.score||0)-(a.score||0));
-  showModal(`<h2>😈 Steal 20% from…</h2><div class="lb">${ps.slice(0,8).map(p=>`<div style="cursor:pointer;grid-template-columns:1fr auto" onclick="doSteal('${p.id}','${esc(p.name).replace(/'/g,"")}',${p.score||0})"><span class="pl">${rookSVG(p.rook,30)}${esc(p.name)}</span><span>💰 ${p.score||0}</span></div>`).join("")}</div>`);
+  showModal(`<h2>${act==="steal"?"😈 Steal 20% from…":"🔄 Swap ALL your gold with…"}</h2><p class="muted small">You have 💰 ${G.gold}</p><div class="lb">${ps.slice(0,10).map(p=>p.shield
+    ?`<div style="grid-template-columns:1fr auto;opacity:.5"><span class="pl">${rookSVG(p.rook,30)}${esc(p.name)} 🛡️</span><span>💰 ${p.score||0}</span></div>`
+    :`<div style="cursor:pointer;grid-template-columns:1fr auto" onclick="doTarget('${act}','${p.id}','${esc(p.name).replace(/'/g,"")}',${p.score||0})"><span class="pl">${rookSVG(p.rook,30)}${esc(p.name)}</span><span>💰 ${p.score||0}</span></div>`).join("")}</div>
+    ${ps.every(p=>p.shield)?`<button class="btn" onclick="G.gold+=20;pushLive();raidResult('🛡️','Everyone is shielded! +20 gold',0,'liveNext')">Everyone's shielded — take 20 gold</button>`:""}`);
 }
-async function doSteal(id,name,gold){
-  const amt=Math.floor(gold*.2); G.gold+=amt; pushLive();
-  if(amt>0) FB.sendEvent(LIVE.code,{type:"steal",from:UID,fromName:NAME(),to:id,amount:amt,at:Date.now()}).catch(()=>{});
-  showModal(`<div style="font-size:60px">😈</div><h2>You stole ${amt} gold from ${esc(name)}!</h2><p style="font-size:22px;margin:10px 0">💰 ${G.gold}</p><button class="btn red" onclick="closeModal();G.chestOpen=false;liveNext()">Next ▶</button>`);
+async function doTarget(act,id,name,gold){
+  const now=(await livePlayersBut()).find(p=>p.id===id);
+  if(now&&now.shield){ G.gold+=10; pushLive(); return raidResult("🛡️",`${esc(name)} just put up a shield! +10 gold for trying`,1,"liveNext"); }
+  if(now) gold=now.score||0;
+  if(act==="steal"){ const amt=Math.floor(gold*.2); G.gold+=amt; pushLive();
+    if(amt>0) FB.sendEvent(LIVE.code,{type:"steal",from:UID,fromName:NAME(),to:id,amount:amt,at:Date.now()}).catch(()=>{});
+    return raidResult("😈",`You stole ${amt} gold from ${esc(name)}!`,0,"liveNext"); }
+  const mine=G.gold; G.gold=gold; pushLive();
+  FB.sendEvent(LIVE.code,{type:"swap",from:UID,fromName:NAME(),to:id,amount:mine,at:Date.now()}).catch(()=>{});
+  raidResult("🔄",`You swapped gold with ${esc(name)}!`,0,"liveNext");
+}
+async function liveRaid(){
+  showModal(`<h2>🏹 RAID!</h2><p class="muted">Raiding every castle…</p>`);
+  const ps=(await livePlayersBut()).filter(p=>!p.shield); let tot=0;
+  ps.forEach(p=>{ const t=Math.floor((p.score||0)*.1); if(t>0){ tot+=t; FB.sendEvent(LIVE.code,{type:"raid",from:UID,fromName:NAME(),to:p.id,amount:t,at:Date.now()}).catch(()=>{}); } });
+  G.gold+=tot; pushLive(); raidResult("🏹",`RAID! You took 10% from ${ps.length} castle${ps.length===1?"":"s"}: +${tot}`,0,"liveNext");
 }
 function timesUp(){ G.locked=true; closeModal(); app.innerHTML=`<div class="card fade" style="text-align:center"><h1>⏰ Time's up!</h1><div class="bob">${rookSVG(S.equipped,110)}</div><p>Getting results…</p></div>`;
   setTimeout(()=>{ if(LIVE&&!LIVE.done) liveFinish(); },8000); }
@@ -1963,7 +2292,7 @@ async function liveFinish(){
   if(!LIVE||LIVE.done) return; LIVE.done=true; stopTimers(); closeModal(); Music.stop(); Music.sfx("win");
   if(G){ G.over=true; G.locked=true; }
   const g=LIVE.game, code=LIVE.code;
-  if(G) await FB.updatePlayer(code,UID,{score:G.mode==="classic"?G.pts:G.gold,pos:G.pos,correct:G.correct,total:G.total}).catch(()=>{});
+  if(G) await FB.updatePlayer(code,UID,{score:G.mode==="classic"?G.pts:G.gold,pos:livePos(),correct:G.correct,total:G.total}).catch(()=>{});
   app.innerHTML=`<div class="loading">Getting results… 🏆</div>`;
   await new Promise(r=>setTimeout(r,1500));
   let ps=[]; try{ ps=await FB.getPlayers(code); }catch(e){}
@@ -2116,7 +2445,6 @@ let ADMIN=false;
 function admin(){
   if(!ADMIN) return go("home");
   app.innerHTML=`<div class="card fade"><h1>🛡️ Admin</h1>
-    <div class="prefs"><b>🚨 Cutscene alerts</b><p class="small muted">Players who moved their mouse out, clicked, pressed a key or left the page during THE ROOK cutscene.</p><div id="inc"><p class="muted small">Loading…</p></div></div>
     <div class="prefs"><b>🚫 Banned players</b><div class="tform" style="grid-template-columns:1fr auto"><input id="b_user" placeholder="Ban a username" maxlength="15"><button class="btn red small" onclick="banByName()">Ban</button></div><div id="bans"><p class="muted small">Loading…</p></div></div>
     <div class="prefs"><b>📰 Post news</b>
       <input id="n_title" placeholder="Headline (or your poll question)" maxlength="80"><textarea id="n_body" rows="4" placeholder="What's new? (optional for a poll)" maxlength="1500"></textarea>
@@ -2129,14 +2457,23 @@ function admin(){
       <div class="row" style="justify-content:flex-start"><button class="btn small" onclick="grantTitle(false)">Remove that title</button><button class="btn small" onclick="showTitles()">See their titles</button></div>
       <div id="g_msg" class="small"></div></div>
     <div class="prefs"><b>🕵️ Who recorded the cutscene?</b>
-      <p class="small muted">Every player's THE ROOK cutscene puts the Common Rooks (the outer ring) in a different order. In the leaked video, start at the Rook at the very <b>top</b> of the outer ring and go <b>clockwise</b>. Pick the first 4 you see:</p>
+      <p class="small muted">Every account gets its own secret Rook order the moment it's created. Their THE ROOK cutscene puts the Common Rooks (the outer ring) in that order. In the leaked video, start at the Rook at the very <b>top</b> of the outer ring and go <b>clockwise</b>. Pick the first 4 you see:</p>
       <div class="tform" style="grid-template-columns:repeat(4,1fr) auto">${[0,1,2,3].map(i=>`<select id="lk${i}"><option value="">${i+1}${["st","nd","rd","th"][i]} Rook…</option>${sacList().filter(r=>r[1]==="Common").map(r=>`<option>${esc(r[0])}</option>`).join("")}</select>`).join("")}
       <button class="btn red small" onclick="findLeaker()">Search</button></div>
       <div id="lk_out" class="small"></div>
       <div class="tform" style="grid-template-columns:1fr auto;margin-top:6px"><input id="lk_user" placeholder="…or type a username to see their order" maxlength="15"><button class="btn small" onclick="showOrder()">Show order</button></div>
       <div id="lk_show"></div></div>
+    <div class="prefs"><b>🔤 Find by the corner code</b>
+      <p class="small muted">The bottom-left corner of the cutscene shows a code like <b>RP-K3F9Q-7ZX2M</b>. Every account has its own.</p>
+      <div class="tform" style="grid-template-columns:1fr auto"><input id="pc_in" placeholder="RP-XXXXX-XXXXX" maxlength="20" style="text-transform:uppercase"><button class="btn red small" onclick="findByCode()">Search</button></div>
+      <div id="pc_out" class="small"></div></div>
+    <div class="prefs"><b>🟣 Find by the purple glow</b>
+      <p class="small muted">Right after the cutscene starts, the purple light behind the board flashes twice quickly (that's the start signal), then pulses 32 times. Each pulse is <b>bright</b> or <b>dim</b>, and every account's pattern is different. Tap each beat to match the video, then Search.</p>
+      <div class="row" style="justify-content:flex-start;gap:4px" id="gl_beats">${Array.from({length:GLOW_BEATS},(_,i)=>`${i%8===0&&i?'<span style="width:100%"></span>':""}<button class="beat" data-b="1" onclick="this.dataset.b=this.dataset.b==='1'?'0':'1';this.textContent=(this.dataset.b==='1'?'☀️':'🌑')+' ${i+1}'">☀️ ${i+1}</button>`).join("")}</div>
+      <div class="row" style="justify-content:flex-start"><button class="btn red small" onclick="findByGlow()">Search</button></div>
+      <div id="gl_out" class="small"></div></div>
     <div class="prefs"><b>📰 Posted news</b><div id="adm_news"><p class="muted small">Loading…</p></div></div></div>`;
-  loadIncidents(); loadBans();
+  loadBans();
   loadNews(true).then(l=>{ const e=document.getElementById("adm_news"); if(e){ e.innerHTML=l.length?l.map(n=>newsCard(n,true)).join(""):`<p class="muted small">Nothing posted yet.</p>`; hydratePolls(l); } });
 }
 let POLL_OPTS=["",""];
@@ -2182,28 +2519,44 @@ async function banUser(uid,name,why){
   showModal(`<div style="font-size:48px">🚫</div><h2>Ban ${esc(name)}?</h2><p>They won't be able to play, save, trade or join games until you unban them.</p><br>
     <div class="row"><button class="btn red" onclick="doBan('${uid}','${esc(name).replace(/'/g,"")}','${esc(why).replace(/'/g,"")}')">Ban</button><button class="btn" onclick="closeModal()">Cancel</button></div>`);
 }
-async function doBan(uid,name,why){ try{ await FB.ban(uid,name,why); toast(`🚫 ${name} is banned`); }catch(e){ toast("Couldn't ban — publish the newest Firebase rules"); } closeModal(); loadIncidents(); loadBans(); }
+async function doBan(uid,name,why){ try{ await FB.ban(uid,name,why); toast(`🚫 ${name} is banned`); }catch(e){ toast("Couldn't ban — publish the newest Firebase rules"); } closeModal(); loadBans(); }
 async function banByName(){ const u=document.getElementById("b_user").value.trim(); if(!u) return; let who=null; try{ who=await FB.lookup(u); }catch(e){}
   if(!who) return toast(`No player named "${u}"`); if(who.uid===UID) return toast("You can't ban yourself 😄"); banUser(who.uid,who.name,"banned by admin"); }
 async function loadBans(){
   const el=document.getElementById("bans"); if(!el) return; let list=[]; try{ list=await FB.bans(); }catch(e){ el.innerHTML=""; return; }
   el.innerHTML=list.length?list.map(b=>`<div class="offer"><div><b>${esc(b.name)}</b> <span class="muted small">— ${esc(b.why||"")}</span></div><button class="btn small" onclick="doUnban('${b.id}','${esc(b.name).replace(/'/g,"")}')">Unban</button></div>`).join(""):`<p class="muted small">No one is banned.</p>`;
 }
-async function doUnban(uid,name){ try{ await FB.unban(uid); toast(`${name} can play again`); }catch(e){ toast("Couldn't unban"); } loadBans(); loadIncidents(); }
+async function doUnban(uid,name){ try{ await FB.unban(uid); toast(`${name} can play again`); }catch(e){ toast("Couldn't unban"); } loadBans(); }
 async function findLeaker(){
   const pick=[0,1,2,3].map(i=>document.getElementById("lk"+i).value).filter(Boolean);
   const out=document.getElementById("lk_out"); if(pick.length<2) return out.textContent="Pick at least 2 Rooks (4 is best).";
   out.textContent="Searching every player…";
-  let ids=[]; try{ ids=await FB.allRanks(); }catch(e){ return out.textContent="Couldn't load players."; }
+  let ids=[]; try{ ids=await FB.allPlayers(); }catch(e){ return out.textContent="Couldn't load players."; }
   const hits=ids.filter(p=>{ const o=outerRing(p.id); return pick.every((n,i)=>o[i]===n); });
-  out.innerHTML=hits.length?`🎯 <b>Match${hits.length>1?"es":""}:</b> ${hits.map(p=>esc(p.name)).join(", ")}${hits.length>1?" — pick more Rooks to narrow it down":""}`:"No player matches. Double-check you started at the top and went clockwise.";
+  out.innerHTML=hits.length?`<span class="muted">Checked all ${ids.length} accounts.</span><br>🎯 <b>Match${hits.length>1?"es":""}:</b> ${hits.map(p=>esc(p.name)).join(", ")}${hits.length>1?" — pick more Rooks to narrow it down":""}`:"No player matches. Double-check you started at the top and went clockwise.";
+}
+async function findByCode(){
+  const code=document.getElementById("pc_in").value.trim().toUpperCase().replace(/\s/g,""), out=document.getElementById("pc_out");
+  if(code.length<8) return out.textContent="Type the whole code.";
+  out.textContent="Searching every player…";
+  let ids=[]; try{ ids=await FB.allPlayers(); }catch(e){ return out.textContent="Couldn't load players."; }
+  const norm=s=>s.replace(/[^A-Z0-9]/g,""), hits=ids.filter(p=>norm(playerCode(p.id))===norm(code));
+  out.innerHTML=`<span class="muted">Checked all ${ids.length} accounts.</span><br>`+(hits.length?`🎯 <b>Match:</b> ${hits.map(p=>esc(p.name)).join(", ")}`:"No player has that code. Check for typos (0 vs O, 1 vs I).");
+}
+async function findByGlow(){
+  const pat=[...document.querySelectorAll("#gl_beats .beat")].map(b=>+b.dataset.b), out=document.getElementById("gl_out");
+  out.textContent="Searching every player…";
+  let ids=[]; try{ ids=await FB.allPlayers(); }catch(e){ return out.textContent="Couldn't load players."; }
+  const hits=ids.filter(p=>glowPattern(p.id).every((b,i)=>b===pat[i]));
+  out.innerHTML=`<span class="muted">Checked all ${ids.length} accounts.</span><br>`+(hits.length?`🎯 <b>Match${hits.length>1?"es":""}:</b> ${hits.map(p=>esc(p.name)).join(", ")}${hits.length>1?" — check their Rook order to tell them apart":""}`:"No player has that pattern. Recount the beats after the 2 quick start flashes.");
 }
 async function showOrder(){
   const u=document.getElementById("lk_user").value.trim(); if(!u) return;
   let who=null; try{ who=await FB.lookup(u); }catch(e){} const el=document.getElementById("lk_show");
   if(!who) return el.textContent=`No player named "${u}"`;
   const o=outerRing(who.uid).slice(0,8);
-  el.innerHTML=`<p class="small"><b>${esc(who.name)}</b>'s outer ring, clockwise from the top:</p><div class="row" style="justify-content:flex-start;gap:6px">${o.map((n,i)=>`<div style="text-align:center;font-size:11px">${rookSVG(n,40)}<br>${i+1}. ${esc(n)}</div>`).join("")}</div>`;
+  const gp=glowPattern(who.uid).map(b=>b?"☀️":"🌑").join("");
+  el.innerHTML=`<p class="small"><b>${esc(who.name)}</b>'s corner code: <b>${esc(playerCode(who.uid))}</b></p><p class="small"><b>${esc(who.name)}</b>'s glow pattern: ${gp}</p><p class="small"><b>${esc(who.name)}</b>'s outer ring, clockwise from the top:</p><div class="row" style="justify-content:flex-start;gap:6px">${o.map((n,i)=>`<div style="text-align:center;font-size:11px">${rookSVG(n,40)}<br>${i+1}. ${esc(n)}</div>`).join("")}</div>`;
 }
 async function showTitles(){ const u=g_user.value.trim(); if(!u) return; let t=[]; try{ t=await FB.getTitles(u); }catch(e){} g_msg.textContent=t.length?`${u}'s special titles: ${t.join(", ")}`:`${u} has no special titles.`; }
 
