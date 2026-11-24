@@ -280,6 +280,13 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   .ach .aic{font-size:30px;line-height:1}.ach.ok .aic{animation:bob 2.4s infinite}
   .abar{height:7px;background:#f3dccb;border-radius:99px;overflow:hidden;margin:4px 0 2px}.abar div{height:100%;background:linear-gradient(90deg,#e63940,#f77f00)}
   .news{background:var(--cream);border-radius:14px;padding:12px 14px;margin-top:10px}.news p{margin-top:6px}
+  .poll{display:grid;gap:6px;margin-top:10px}
+  .popt{position:relative;overflow:hidden;font:inherit;font-weight:600;text-align:left;border:2px solid var(--red);background:#fff;color:var(--ink);border-radius:12px;padding:10px 12px;cursor:pointer;display:flex;justify-content:space-between;gap:10px;transition:transform .1s}
+  .popt:hover:not(:disabled){transform:translateY(-2px)}
+  .popt.res{border-color:var(--line)}.popt.res.mine{border-color:var(--red)}
+  .popt:disabled{cursor:default}
+  .popt .pbar{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#ffd6d9,#ffe9b8);transition:width .6s;z-index:0}
+  .popt .ptxt,.popt .ppct{position:relative;z-index:1}.popt .ppct{color:#7a6a6c;font-size:14px;white-space:nowrap}
   textarea{font-family:inherit;font-size:16px;padding:10px;border-radius:10px;border:2px solid #ead8c9;width:100%;resize:vertical}
   .aopt{display:flex;gap:4px;align-items:center}.aopt input{flex:1}
   .aopt .tick,.aopt .x{border:none;background:none;font-size:18px;cursor:pointer;padding:2px}
@@ -417,6 +424,14 @@ if (window.FB) {
         return s.docs.map(d => ({ id: d.id, ...d.data(), at: (d.data().at && d.data().at.toMillis) ? d.data().at.toMillis() : 0 }));
       },
       postNews: n => F.addDoc(F.collection(db, "news"), { ...n, at: F.serverTimestamp() }),
+      async pollState(newsId, uid, n) {
+        const c = F.collection(db, "news", newsId, "votes");
+        const counts = await Promise.all([...Array(n).keys()].map(i => F.getCountFromServer(F.query(c, F.where("choice", "==", i))).then(s => s.data().count)));
+        const mine = await F.getDoc(F.doc(db, "news", newsId, "votes", uid));
+        return { counts, mine: mine.exists() ? mine.data().choice : null };
+      },
+      vote: (newsId, uid, choice) => F.setDoc(F.doc(db, "news", newsId, "votes", uid), { choice, at: F.serverTimestamp() }),
+      closePoll: newsId => F.updateDoc(F.doc(db, "news", newsId), { "poll.closed": true }),
       delNews: id => F.deleteDoc(F.doc(db, "news", id)),
       async getTitles(name) { const s = await F.getDoc(F.doc(db, "titles", name.toLowerCase())); return s.exists() ? (s.data().list || []) : []; },
       grantTitle: (name, t) => F.setDoc(F.doc(db, "titles", name.toLowerCase()), { list: F.arrayUnion(t) }, { merge: true }),
@@ -2051,16 +2066,47 @@ let NEWS=null;
 const WELCOME_NEWS=[{title:"Welcome to RedPup! 🐶",body:"Answer questions, earn tokens, open boxes and collect every Rook. New: titles, achievements, the RedPup ranking, the Sports box, and questions with 2–4 answers!",when:"Nov 2026"}];
 async function loadNews(force){ if(NEWS&&!force) return NEWS; try{ NEWS=await FB.news(); }catch(e){ NEWS=[]; } return NEWS; }
 const newsDate=n=>n.at?new Date(n.at).toLocaleDateString(undefined,{month:"short",day:"numeric"}):(n.when||"");
-function newsCard(n,admin){ return `<div class="news"><div class="row" style="justify-content:space-between"><b>${esc(n.title)}</b><span class="muted small">${esc(newsDate(n))}${n.by?" · "+esc(n.by):""}</span></div><p>${esc(n.body).replace(/\n/g,"<br>")}</p>${admin&&n.id?`<button class="btn small" onclick="delNews('${n.id}')">Delete</button>`:""}</div>`; }
+function newsCard(n,admin){ return `<div class="news"><div class="row" style="justify-content:space-between"><b>${esc(n.title)}</b><span class="muted small">${esc(newsDate(n))}${n.by?" · "+esc(n.by):""}</span></div>${n.body?`<p>${esc(n.body).replace(/\n/g,"<br>")}</p>`:""}
+  ${n.poll&&n.id?`<div class="poll" data-poll="${n.id}"><p class="muted small">Loading poll…</p></div>`:""}
+  ${admin&&n.id?`<div class="row" style="justify-content:flex-start;margin-top:6px">${n.poll&&!n.poll.closed?`<button class="btn small" onclick="closePoll('${n.id}')">🔒 Close voting</button>`:""}<button class="btn small" onclick="delNews('${n.id}')">Delete</button></div>`:""}</div>`; }
+// ---------- polls ----------
+async function hydratePolls(list){
+  for(const el of document.querySelectorAll(".poll[data-poll]")){
+    const n=list.find(x=>x.id===el.dataset.poll); if(!n||!n.poll) continue;
+    let st={counts:n.poll.options.map(()=>0),mine:null};
+    try{ st=await FB.pollState(n.id,UID,n.poll.options.length); }catch(e){}
+    renderPoll(el,n,st);
+  }
+}
+function renderPoll(el,n,st){
+  const total=st.counts.reduce((a,b)=>a+b,0), closed=!!n.poll.closed, voted=st.mine!==null, showRes=voted||closed||ADMIN, locked=voted||closed;
+  el.innerHTML=`${n.poll.options.map((o,i)=>{ const c=st.counts[i]||0, pct=total?Math.round(c/total*100):0, mine=st.mine===i;
+    return showRes
+      ?`<button class="popt res ${mine?"mine":""}" ${locked?"disabled":""} onclick="castVote('${n.id}',${i})"><span class="pbar" style="width:${pct}%"></span><span class="ptxt">${mine?"✅ ":""}${esc(o)}</span><span class="ppct">${pct}% · ${c}</span></button>`
+      :`<button class="popt" onclick="castVote('${n.id}',${i})"><span class="ptxt">${esc(o)}</span></button>`; }).join("")}
+    <p class="muted small">${total} vote${total===1?"":"s"}${closed?" · 🔒 Voting closed":voted?" · ✅ You voted":ADMIN?" · tap a choice to vote":" · tap a choice to vote — you can't change it after"}</p>`;
+}
+const VOTED={};
+async function castVote(id,i){
+  const n=(NEWS||[]).find(x=>x.id===id); if(!n||!n.poll||n.poll.closed||VOTED[id]) return;
+  const el=document.querySelector(`.poll[data-poll="${id}"]`);
+  VOTED[id]=1;
+  try{ await FB.vote(id,UID,i); toast("🗳️ Vote counted!","good"); }
+  catch(e){ VOTED[id]=0; return toast("Couldn't vote — you may have already voted"); }
+  if(el){ try{ renderPoll(el,n,await FB.pollState(id,UID,n.poll.options.length)); }catch(e){} }
+}
+async function closePoll(id){ try{ await FB.closePoll(id); toast("🔒 Voting closed"); NEWS=null; admin(); }catch(e){ toast("Couldn't close — publish the newest Firebase rules"); } }
 async function newsPage(){
   app.innerHTML=`<div class="card fade"><h1>📰 RedPup News</h1><div id="newsl"><p class="loading">Loading…</p></div></div>`;
   const list=await loadNews(true); const el=document.getElementById("newsl"); if(!el) return;
   el.innerHTML=(list.length?list:WELCOME_NEWS).map(n=>newsCard(n,ADMIN)).join("");
+  hydratePolls(list);
 }
 async function homeNews(){
   const list=await loadNews(); const el=document.getElementById("homenews"); if(!el) return;
   const top=(list.length?list:WELCOME_NEWS).slice(0,2);
   el.innerHTML=`<div class="playtop"><h2 style="margin:0">📰 News</h2><a href="#" onclick="newsPage();return false" style="color:var(--red);font-weight:600">All news →</a></div>${top.map(n=>newsCard(n)).join("")}`;
+  hydratePolls(list);
 }
 
 // ====================================================================
@@ -2073,7 +2119,9 @@ function admin(){
     <div class="prefs"><b>🚨 Cutscene alerts</b><p class="small muted">Players who moved their mouse out, clicked, pressed a key or left the page during THE ROOK cutscene.</p><div id="inc"><p class="muted small">Loading…</p></div></div>
     <div class="prefs"><b>🚫 Banned players</b><div class="tform" style="grid-template-columns:1fr auto"><input id="b_user" placeholder="Ban a username" maxlength="15"><button class="btn red small" onclick="banByName()">Ban</button></div><div id="bans"><p class="muted small">Loading…</p></div></div>
     <div class="prefs"><b>📰 Post news</b>
-      <input id="n_title" placeholder="Headline" maxlength="80"><textarea id="n_body" rows="4" placeholder="What's new?" maxlength="1500"></textarea>
+      <input id="n_title" placeholder="Headline (or your poll question)" maxlength="80"><textarea id="n_body" rows="4" placeholder="What's new? (optional for a poll)" maxlength="1500"></textarea>
+      <label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" id="n_haspoll" style="width:auto" onchange="pollOpts()"> 🗳️ Add a poll</label>
+      <div id="n_poll"></div>
       <div><button class="btn red small" id="n_go" onclick="postNews()">Post</button></div></div>
     <div class="prefs"><b>🎖️ Give a title</b><p class="small muted">Special titles show next to the player's name, like "🌈 First Chroma".</p>
       <div class="tform" style="grid-template-columns:1fr 1fr auto"><input id="g_user" placeholder="Username" maxlength="15"><input id="g_title" placeholder="Title (e.g. 🌈 First Chroma)" maxlength="30">
@@ -2089,12 +2137,25 @@ function admin(){
       <div id="lk_show"></div></div>
     <div class="prefs"><b>📰 Posted news</b><div id="adm_news"><p class="muted small">Loading…</p></div></div></div>`;
   loadIncidents(); loadBans();
-  loadNews(true).then(l=>{ const e=document.getElementById("adm_news"); if(e) e.innerHTML=l.length?l.map(n=>newsCard(n,true)).join(""):`<p class="muted small">Nothing posted yet.</p>`; });
+  loadNews(true).then(l=>{ const e=document.getElementById("adm_news"); if(e){ e.innerHTML=l.length?l.map(n=>newsCard(n,true)).join(""):`<p class="muted small">Nothing posted yet.</p>`; hydratePolls(l); } });
+}
+let POLL_OPTS=["",""];
+function pollOpts(){
+  const box=document.getElementById("n_poll"); if(!box) return;
+  if(!document.getElementById("n_haspoll").checked){ box.innerHTML=""; return; }
+  box.innerHTML=`<div style="display:grid;gap:6px">${POLL_OPTS.map((o,i)=>`<div class="aopt"><span class="muted small" style="width:20px">${i+1}.</span><input placeholder="Choice ${i+1}" maxlength="60" value="${esc(o)}" oninput="POLL_OPTS[${i}]=this.value">${POLL_OPTS.length>2?`<button class="x" onclick="POLL_OPTS.splice(${i},1);pollOpts()">✕</button>`:""}</div>`).join("")}
+    ${POLL_OPTS.length<6?`<div><button class="btn small" onclick="POLL_OPTS.push('');pollOpts()">+ Choice</button></div>`:""}</div>`;
 }
 async function postNews(){
-  const t=n_title.value.trim(), b=n_body.value.trim(); if(!t||!b) return toast("Add a headline and some text");
+  const t=n_title.value.trim(), b=n_body.value.trim(), withPoll=document.getElementById("n_haspoll").checked;
+  const opts=POLL_OPTS.map(o=>o.trim()).filter(Boolean);
+  if(!t) return toast("Add a headline");
+  if(!withPoll&&!b) return toast("Add some text (or a poll)");
+  if(withPoll&&opts.length<2) return toast("A poll needs at least 2 choices");
   n_go.disabled=true;
-  try{ await FB.postNews({title:t,body:b,by:NAME()}); toast("📰 Posted!","good"); NEWS=null; admin(); }catch(e){ toast("Couldn't post — is your account in the admins list?"); n_go.disabled=false; }
+  const post={title:t,body:b,by:NAME()}; if(withPoll) post.poll={options:opts,closed:false};
+  try{ await FB.postNews(post); toast(withPoll?"🗳️ Poll posted!":"📰 Posted!","good"); POLL_OPTS=["",""]; NEWS=null; admin(); }
+  catch(e){ toast("Couldn't post — is your account in the admins list?"); n_go.disabled=false; }
 }
 async function delNews(id){ try{ await FB.delNews(id); NEWS=null; toast("Deleted"); (document.getElementById("adm_news")?admin:newsPage)(); }catch(e){ toast("Couldn't delete"); } }
 async function grantTitle(add){
