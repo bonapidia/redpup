@@ -426,6 +426,7 @@ if (window.FB) {
         if (!(await F.getDoc(ref)).exists()) await F.setDoc(ref, { uid, name });
       },
       signIn: (id, pw) => A.signInWithEmailAndPassword(auth, id.includes("@") ? id.trim() : email(id), pw),
+      signInToken: t => A.signInWithCustomToken(auth, t),
       signOut: () => A.signOut(auth),
       async getUser(uid) { const s = await F.getDoc(userDoc(uid)); return s.exists() ? s.data() : null; },
       saveUser: (uid, data) => F.setDoc(userDoc(uid), data),
@@ -962,7 +963,16 @@ function fbErr(e){ const c=(e&&e.code)||"";
 async function doLogin(){
   const n=l_name.value.trim(), p=l_pw.value; if(!n||!p) return l_err.textContent="Enter your username (or email) and password.";
   l_go.disabled=true; l_err.textContent="";
-  try{ await FB.signIn(n,p); }catch(e){ l_err.textContent=fbErr(e); l_go.disabled=false; }
+  try{ await FB.signIn(n,p); }catch(e){ const c=String(e&&e.code||"");
+    if(!n.includes("@")&&/invalid-credential|wrong-password|user-not-found|invalid-login/.test(c)){
+      // maybe they signed up with an email — the helper checks the password and logs them in by username
+      try{ const r=await fetch(window.RESET_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"login",username:n,password:p})});
+        const j=await r.json().catch(()=>({}));
+        if(r.ok&&j.token){ await FB.signInToken(j.token); return; }
+        l_err.textContent=r.status===429?"Too many wrong tries. Wait 15 minutes and try again.":"Wrong username or password.";
+      }catch(e2){ l_err.textContent="Wrong username or password. If you signed up with an email, try logging in with it."; }
+    } else l_err.textContent=fbErr(e);
+    l_go.disabled=false; }
 }
 async function doSignup(){
   const n=l_name.value.trim(), p=l_pw.value, em=(l_email.value||"").trim();
