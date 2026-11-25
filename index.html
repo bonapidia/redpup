@@ -489,6 +489,8 @@ if (window.FB) {
       async giftUses(code) { const c = await F.getCountFromServer(F.query(F.collection(db, "redemptions"), F.where("code", "==", code))); return c.data().count; },
       async giftUsed(code) { return (await F.getDoc(F.doc(db, "redemptions", code + "_" + auth.currentUser.uid))).exists(); },
       giftRedeem: (code, name) => F.setDoc(F.doc(db, "redemptions", code + "_" + auth.currentUser.uid), { code, uid: auth.currentUser.uid, name, at: F.serverTimestamp() }),
+      async getSchedule() { const d = await F.getDoc(F.doc(db, "config", "schedule")); return d.exists() ? d.data() : null; },
+      setSchedule: d => F.setDoc(F.doc(db, "config", "schedule"), d),
       async allPlayers() { const s = await F.getDocs(F.collection(db, "usernames")); return s.docs.map(d => ({ id: d.data().uid, name: d.data().name })).filter(p => p.id); },
       async allRanks() { const s = await F.getDocs(F.collection(db, "ranks")); return s.docs.map(d => ({ id: d.id, name: d.data().name })); },
       async news() {
@@ -1011,7 +1013,8 @@ async function doSignup(){
 }
 let TEACHER=false;
 function renderNav(){
-  document.getElementById("nav").innerHTML=`<button data-g="home" onclick="go('home')">🏠 Home</button>`+(TEACHER?`<button data-g="host" onclick="go('host')">🎤 Host</button><button data-g="play" onclick="go('play')">▶ Play</button>`:`<button data-g="play" onclick="go('join')">▶ Play</button>`)+
+  if(accessMode()==="school"){ document.getElementById("nav").innerHTML=`<button data-g="home" onclick="go('home')">🏫 Class games</button>`; return; }
+  document.getElementById("nav").innerHTML=`<button data-g="home" onclick="go('home')">🏠 Home</button>`+(TEACHER?`<button data-g="host" onclick="go('host')">🎤 Host</button><button data-g="play" onclick="go('play')">▶ Play</button>`:`<button data-g="play" onclick="go(accessMode()==='all'?'join':'play')">▶ Play</button>`)+
     `<button data-g="create" onclick="go('create')">✏️ Create</button><button data-g="rooks" onclick="go('rooks')">🏰 Rooks</button><button data-g="trade" onclick="go('trade')">🔁 Trade</button><button data-g="hall" onclick="go('hall')">🏆 Hall</button>`+
     (ADMIN?`<button onclick="go('admin')">🛡️ Admin</button>`:"");
 }
@@ -1020,6 +1023,7 @@ async function afterLogin(){
   try{ TEACHER=await FB.isTeacher(UID); }catch(e){ TEACHER=false; }
   try{ ADMIN=await FB.isAdmin(UID); }catch(e){ ADMIN=false; }
   try{ SPECIAL=await FB.getTitles(NAME()); }catch(e){ SPECIAL=[]; }
+  await Promise.all([syncClock(),loadSchedule()]); startScheduleWatch();
   document.body.classList.remove("out");
   try{localStorage.removeItem("redpup_mode")}catch(e){}
   renderNav(); renderUserChip();
@@ -1030,7 +1034,7 @@ async function logout(){
   stopTimers(); leaveLive(); Music.stop();
   if(MODE==="fb"){ if(saveT) await writeNow(); if(unsubUser){unsubUser();unsubUser=null;} LOADED=false; MODE=null; await FB.signOut(); }
   try{localStorage.removeItem("redpup_mode")}catch(e){}
-  UID=null; ADMIN=false; SPECIAL=[]; NEWS=null; lastRank=""; loginScreen();
+  clearInterval(schedT); UID=null; ADMIN=false; SPECIAL=[]; NEWS=null; lastRank=""; loginScreen();
 }
 
 // ====================================================================
@@ -1249,7 +1253,8 @@ const app=document.getElementById("app");
 // Combined tabs: Rooks = My Rooks + Market, Play = Join + Solo
 function navOn(g){ document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.g===g)); }
 function subTabs(group,cur){
-  const T=group==="rooks"?[["rooks","🏰 My Rooks"],["market","🛒 Market"]]:[["join","🔑 Join a Game"],["play","▶ Solo"]];
+  const T=group==="rooks"?[["rooks","🏰 My Rooks"],["market","🛒 Market"]]:accessMode()==="all"?[["join","🔑 Join a Game"],["play","▶ Solo"]]:[];
+  if(!T.length) return navOn(group);
   app.insertAdjacentHTML("afterbegin",`<div class="tabs subtabs">${T.map(([k,l])=>`<button class="${k===cur?"on":""}" onclick="go('${k}')">${l}</button>`).join("")}</div>`);
   navOn(group);
 }
@@ -1259,7 +1264,102 @@ function subTabs(group,cur){
   play=function(...a){ const v=_p(...a); if(PICK==="solo"&&!TEACHER) subTabs("play","play"); else navOn(PICK==="host"?"host":"play"); return v; };
   join=function(...a){ const v=_j(...a); subTabs("play","join"); return v; };
 }
+// ====================================================================
+//  SCHOOL SCHEDULE (Austin time)
+//   • School days 8:50 AM – 3:35 PM  → students can ONLY join games hosted by teachers
+//   • Any other time, weekends and days off → everything EXCEPT joining class games
+//   • Teachers, test mode and the secret all-access link → everything, any time
+// ====================================================================
+// School-wide days with no classes, from the St. Andrew's 2026-27 calendar. (Change them on the Admin page.)
+const DEFAULT_OFF=[
+  {from:"2026-09-07",to:"2026-09-07",name:"Labor Day"},
+  {from:"2026-10-09",to:"2026-10-09",name:"Conference / Workday, no classes"},
+  {from:"2026-10-12",to:"2026-10-13",name:"Fall Break"},
+  {from:"2026-10-30",to:"2026-10-30",name:"Inservice / Conference Day, no classes"},
+  {from:"2026-11-23",to:"2026-11-27",name:"Thanksgiving Break"},
+  {from:"2026-12-21",to:"2027-01-04",name:"Christmas Break"},
+  {from:"2027-01-18",to:"2027-01-18",name:"Martin Luther King Jr. Day"},
+  {from:"2027-02-12",to:"2027-02-12",name:"Faculty Workday, no classes"},
+  {from:"2027-02-15",to:"2027-02-16",name:"Presidents' Day + Inservice"},
+  {from:"2027-03-15",to:"2027-03-19",name:"Spring Break"},
+  {from:"2027-03-26",to:"2027-03-26",name:"Good Friday"},
+  {from:"2027-03-29",to:"2027-03-30",name:"Easter Monday + Inservice"},
+  {from:"2027-05-28",to:"2027-08-17",name:"Summer Break"}
+];
+let SCHED={off:DEFAULT_OFF.slice()}, CLOCK_OFF=0, ACCESS=null;
+const SCHOOL_START=8*60+50, SCHOOL_END=15*60+35;      // 8:50 → 3:35 (school time includes 3:35)
+const ANYTIME=()=>{ try{ return sessionStorage.getItem("redpup_anytime")==="1"; }catch(e){ return false; } };
+// use the web server's clock, so changing the computer's clock doesn't unlock anything
+async function syncClock(){
+  try{ const r=await fetch(location.pathname,{method:"HEAD",cache:"no-store"}); const d=r.headers.get("Date"); if(d){ const t=new Date(d).getTime(); if(t) CLOCK_OFF=t-Date.now(); } }catch(e){}
+}
+function austinNow(){
+  const parts={}; new Intl.DateTimeFormat("en-US",{timeZone:"America/Chicago",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false,weekday:"short"})
+    .formatToParts(new Date(Date.now()+CLOCK_OFF)).forEach(p=>parts[p.type]=p.value);
+  const h=(+parts.hour)%24, m=+parts.minute;
+  return {ymd:`${parts.year}-${parts.month}-${parts.day}`,wd:parts.weekday,min:h*60+m,label:`${((h+11)%12)+1}:${String(m).padStart(2,"0")} ${h<12?"AM":"PM"}`};
+}
+function dayOff(ymd){ return (SCHED.off||[]).find(o=>ymd>=o.from&&ymd<=(o.to||o.from)); }
+function accessMode(){
+  if(ANYTIME()||TEACHER||TEST) return "all";
+  const n=austinNow();
+  if(n.wd==="Sat"||n.wd==="Sun"||dayOff(n.ymd)) return "home";
+  return n.min>=SCHOOL_START&&n.min<=SCHOOL_END?"school":"home";
+}
+function whyHome(){ const n=austinNow(), o=dayOff(n.ymd);
+  return n.wd==="Sat"||n.wd==="Sun"?"It's the weekend":o?`No school today (${o.name||"day off"})`:"School's out right now"; }
+function schoolHome(){
+  app.innerHTML=`<div class="hero fade">
+    <img class="brand" src="${LOGO_LIGHT}" alt="RedPup">
+    <div style="font-size:64px">🏫</div>
+    <h1 style="margin:6px 0">It's school time!</h1>
+    <p>During school (8:50 AM – 3:35 PM) RedPup is only for <b>games your teacher hosts</b>.<br>Got a code from your teacher? Type it here!</p>
+    <form class="joinbox" onsubmit="event.preventDefault();joinCode(jc.value)"><input id="jc" inputmode="numeric" maxlength="6" placeholder="123456"><button class="btn red big">Join</button></form>
+    <p class="muted small">Everything else opens back up at 3:36 PM.</p></div>`;
+}
+const CLASS_ONLY_MSG="Class games only work during school (8:50 AM – 3:35 PM on school days).";
+async function loadSchedule(){ try{ const s=await FB.getSchedule(); if(s&&Array.isArray(s.off)) SCHED=s; }catch(e){} }
+let schedT=null;
+function startScheduleWatch(){
+  clearInterval(schedT); ACCESS=accessMode(); let n=0;
+  schedT=setInterval(async()=>{
+    if(!S||!UID) return;
+    if(++n%10===0){ await syncClock(); }              // re-check the server clock every ~5 minutes
+    if(n%60===0) await loadSchedule();                  // and the days-off list every ~30 minutes
+    const m=accessMode(); if(m===ACCESS) return;
+    const was=ACCESS; ACCESS=m; renderNav();
+    if(LIVE) return;                                    // never kick anyone out of a class game in progress
+    if(m==="school"){ toast("🏫 School time! Only class games until 3:36 PM."); go("home"); }
+    else if(was==="school"){ toast("🎉 School's out! Everything is open again."); go("home"); }
+  },30000);
+}
+// ---- admin: days off editor ----
+function adminScheduleHTML(){
+  const n=austinNow(), m=accessMode();
+  return `<div class="prefs"><b>📅 School days off</b>
+    <p class="small muted">Right now in Austin: <b>${n.wd} ${n.ymd} ${n.label}</b> · players see <b>${ {school:"🏫 class games only",home:"🏠 everything except class games",all:"✨ everything (you're using all-access, test mode or a teacher account)"}[m] }</b>.
+    On weekdays 8:50 AM – 3:35 PM students can only join teacher games; any other time (and weekends + the days below) they get everything except joining.</p>
+    <div class="tform" style="grid-template-columns:1fr 1fr 1.4fr auto"><input id="so_from" type="date"><input id="so_to" type="date" title="Last day off (leave empty for one day)"><input id="so_name" placeholder="Name (e.g. Thanksgiving)" maxlength="40"><button class="btn red small" onclick="addDayOff()">Add</button></div>
+    <div id="so_list">${daysOffList()}</div></div>`;
+}
+function daysOffList(){
+  const L=[...(SCHED.off||[])].sort((a,b)=>a.from<b.from?-1:1);
+  if(!L.length) return `<p class="muted small">No days off added yet.</p>`;
+  const fmt=d=>new Date(d+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"});
+  return L.map(o=>`<div class="trow"><span><b>${esc(o.name||"Day off")}</b> · ${fmt(o.from)}${o.to&&o.to!==o.from?" → "+fmt(o.to):""}</span><button class="btn small" onclick="delDayOff('${o.from}','${o.to||""}')">Remove</button></div>`).join("");
+}
+async function saveSchedule(){ try{ await FB.setSchedule({off:SCHED.off}); }catch(e){ toast("Couldn't save. Publish the newest Firestore rules."); } const l=document.getElementById("so_list"); if(l) l.innerHTML=daysOffList(); }
+function addDayOff(){
+  const f=document.getElementById("so_from").value, t=document.getElementById("so_to").value||f, n=document.getElementById("so_name").value.trim();
+  if(!f) return toast("Pick the first day off");
+  if(t<f) return toast("The last day is before the first day");
+  SCHED.off=[...(SCHED.off||[]),{from:f,to:t,name:n.slice(0,40)}]; saveSchedule();
+  document.getElementById("so_from").value=document.getElementById("so_to").value=document.getElementById("so_name").value="";
+}
+function delDayOff(f,t){ SCHED.off=(SCHED.off||[]).filter(o=>!(o.from===f&&(o.to||"")===t)); saveSchedule(); }
+
 function go(p,arg){ if(!S) return; stopTimers(); G=null; leaveLive(); closeModal(); Music.stop();
+  { const am=accessMode(); if(am!==ACCESS){ ACCESS=am; renderNav(); } if(am==="school"){ schoolHome(); navOn("home"); window.scrollTo(0,0); return; } if(am==="home"&&p==="join") p="play"; }
   ({home,play,market,rooks,trade,create,join,host,hall,admin,news:newsPage})[p](arg); if(!['rooks','market','play','join'].includes(p)) navOn(p==='news'?'':p); window.scrollTo(0,0); }
 
 function home(){
@@ -1267,8 +1367,9 @@ function home(){
   app.innerHTML=`<div class="hero fade">
     <img class="brand" src="${LOGO_LIGHT}" alt="RedPup — Outsmart, Outplay, Outscore">
     <div class="bob">${rookSVG(S.equipped,120)}</div>
-    <p>Hi <b>${esc(NAME())}</b>! ${TEACHER?"Host a game for your class, or make your own question sets.":"Got a game code from your teacher? Type it here!"}</p>
+    <p>Hi <b>${esc(NAME())}</b>! ${TEACHER?"Host a game for your class, or make your own question sets.":accessMode()==="home"?"What do you want to do?":"Got a game code from your teacher? Type it here!"}</p>
     ${TEACHER?`<div class="row"><button class="btn red big" onclick="go('host')">🎤 Host a Game</button><button class="btn big" onclick="go('create')">✏️ Create a Set</button></div>`
+      :accessMode()==="home"?`<p class="note">🏠 ${whyHome()}! Class games open on school days 8:50 AM – 3:35 PM. Play solo, open boxes and trade any time.</p>`
       :`<form class="joinbox" onsubmit="event.preventDefault();joinCode(jc.value)"><input id="jc" inputmode="numeric" maxlength="6" placeholder="123456"><button class="btn red big">Join</button></form>`}
     <div class="row" style="margin-top:16px"><button class="btn" onclick="go('play')">▶ Solo Play</button><button class="btn" onclick="go('market')">🛒 Market</button><button class="btn" onclick="go('rooks')">🏰 My Rooks</button><button class="btn" onclick="giftCodeBox()">🎁 Gift code</button></div>
     <div class="tiles">
@@ -1326,6 +1427,7 @@ const rand=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
 // Tokens = questions in the set + questions right (e.g. 2 right in a 5-question set = 7)
 const reward=(correct,set)=>((set&&set.qs&&set.qs.length)||0)+correct;
 function startGame(i,mode){
+  if(accessMode()==="school") return go("home");
   closeModal(); stopTimers();
   const set=allSets()[i];
   const bots=shuffle(["Biscuit","Rusty","Maple","Pepper","Scout","Bean","Waffles","Ziggy"]).slice(0,3)
@@ -2195,6 +2297,7 @@ function join(){
     <form class="joinbox" onsubmit="event.preventDefault();joinCode(jc.value)"><input id="jc" inputmode="numeric" maxlength="6" placeholder="123456" autofocus><button class="btn red big">Join</button></form></div>`;
 }
 async function joinCode(code){
+  if(accessMode()==="home") return toast(CLASS_ONLY_MSG);
   code=String(code||"").replace(/\D/g,"");
   if(code.length!==6) return toast("Game codes have 6 numbers");
   let g=null; try{ g=await FB.getGame(code); }catch(e){}
@@ -3981,6 +4084,7 @@ function admin(){
   if(!ADMIN) return go("home");
   app.innerHTML=`<div class="card fade"><h1>🛡️ Admin</h1>
     ${adminGiftsHTML()}
+    ${adminScheduleHTML()}
     <div class="prefs"><b>🚫 Banned players</b><div class="tform" style="grid-template-columns:1fr auto"><input id="b_user" placeholder="Ban a username" maxlength="15"><button class="btn red small" onclick="banByName()">Ban</button></div><div id="bans"><p class="muted small">Loading…</p></div></div>
     <div class="prefs"><b>📰 Post news</b>
       <input id="n_title" placeholder="Headline (or your poll question)" maxlength="80"><textarea id="n_body" rows="4" placeholder="What's new? (optional for a poll)" maxlength="1500"></textarea>
