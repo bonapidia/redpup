@@ -306,6 +306,14 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   .cmboard.live .sq:has(svg){cursor:pointer}
   .cmboard .chk{background:radial-gradient(circle,#f87171,#b91c1c)}
   .wk{font-size:min(44px,9vw);line-height:1;color:#fff;text-shadow:0 0 2px #000,0 2px 0 #000,0 0 6px #000}
+  .giftbanner{background:#fff7d6;border:2px dashed #f59e0b;border-radius:14px;padding:10px 12px;font-weight:600;margin-bottom:10px}
+  .gform{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:8px 0}
+  .gform label{display:flex;flex-direction:column;gap:4px;font-weight:700;font-size:13px}
+  .gwho{display:flex;flex-direction:column;gap:4px;margin:8px 0}.gwho label{display:flex;gap:8px;align-items:center;font-weight:600}.gwho input{width:auto}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.chip{font:inherit;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px;border:2px solid var(--red);background:#fff;color:var(--red);cursor:pointer}
+  .qrbox{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:#fff;border:2px solid var(--line);border-radius:16px;padding:12px;margin-top:10px}
+  .qrbox canvas{image-rendering:pixelated;width:180px;height:180px}.qrlink{word-break:break-all;color:#7a6a6c}
+  .giftrow{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.giftrow.off{opacity:.55}
   .tabs{display:flex;background:var(--cream);border-radius:12px;padding:4px}
   .tabs button{flex:1;font:inherit;font-weight:600;border:none;background:none;padding:9px;border-radius:9px;cursor:pointer;color:#7a6a6c}
   .subtabs{max-width:460px;margin:0 auto 16px}
@@ -407,7 +415,7 @@ if (window.FB) {
       async signUp(name, pw, realEmail) {
         // log-in email is their real email if they gave one, otherwise a hidden username@redpup.game
         const cred = await A.createUserWithEmailAndPassword(auth, realEmail || email(name), pw);
-        try { await F.setDoc(F.doc(db, "usernames", name.toLowerCase()), { uid: cred.user.uid, name }); }
+        try { await F.setDoc(F.doc(db, "usernames", name.toLowerCase()), { uid: cred.user.uid, name, created: F.serverTimestamp() }); }
         catch (e) { await cred.user.delete().catch(() => {}); throw { code: "taken" }; } // username already used
         return cred.user.uid;
       },
@@ -439,7 +447,7 @@ if (window.FB) {
         tx.set(userDoc(uid), data);
       }),
       watchUser: (uid, cb) => F.onSnapshot(userDoc(uid), s => cb(s.exists() ? s.data() : null, s.metadata.hasPendingWrites)),
-      async lookup(name) { const s = await F.getDoc(F.doc(db, "usernames", name.toLowerCase())); return s.exists() ? s.data() : null; },
+      async lookup(name) { const s = await F.getDoc(F.doc(db, "usernames", name.toLowerCase())); if (!s.exists()) return null; const d = s.data(); return { ...d, created: d.created && d.created.toMillis ? d.created.toMillis() : (d.created || 0) }; },
       async offer(uid, data, trade) {
         const b = F.writeBatch(db);
         b.set(userDoc(uid), data);
@@ -474,6 +482,13 @@ if (window.FB) {
       ban: (uid, name, why) => F.setDoc(F.doc(db, "bans", uid), { name, why, at: F.serverTimestamp() }),
       unban: uid => F.deleteDoc(F.doc(db, "bans", uid)),
       async bans() { const s = await F.getDocs(F.collection(db, "bans")); return s.docs.map(d => ({ id: d.id, ...d.data() })); },
+      giftGet: async code => { const d = await F.getDoc(F.doc(db, "giftCodes", code)); return d.exists() ? d.data() : null; },
+      giftCreate: (code, g) => F.setDoc(F.doc(db, "giftCodes", code), g),
+      giftSetOn: (code, on) => F.updateDoc(F.doc(db, "giftCodes", code), { on }),
+      async giftList() { const s = await F.getDocs(F.query(F.collection(db, "giftCodes"), F.orderBy("created", "desc"), F.limit(40))); return s.docs.map(d => d.data()); },
+      async giftUses(code) { const c = await F.getCountFromServer(F.query(F.collection(db, "redemptions"), F.where("code", "==", code))); return c.data().count; },
+      async giftUsed(code) { return (await F.getDoc(F.doc(db, "redemptions", code + "_" + auth.currentUser.uid))).exists(); },
+      giftRedeem: (code, name) => F.setDoc(F.doc(db, "redemptions", code + "_" + auth.currentUser.uid), { code, uid: auth.currentUser.uid, name, at: F.serverTimestamp() }),
       async allPlayers() { const s = await F.getDocs(F.collection(db, "usernames")); return s.docs.map(d => ({ id: d.data().uid, name: d.data().name })).filter(p => p.id); },
       async allRanks() { const s = await F.getDocs(F.collection(db, "ranks")); return s.docs.map(d => ({ id: d.id, name: d.data().name })); },
       async news() {
@@ -822,6 +837,7 @@ function loginScreen(tab="in"){
   app.innerHTML=`<div class="login card pop">
     <img class="brand" src="${LOGO_LIGHT}" alt="RedPup — Outsmart, Outplay, Outscore">
     ${FB_OFF?`<p class="note">Can't connect to RedPup right now${window.FB_ERROR?" ("+esc(window.FB_ERROR)+")":""}. Check your internet, then try again.</p><button class="btn red big" onclick="location.reload()">Try again</button>`:`
+    ${giftBanner()}
     <div class="tabs"><button class="${tab==="in"?"on":""}" onclick="loginScreen('in')">Log in</button><button class="${tab==="up"?"on":""}" onclick="loginScreen('up')">Sign up</button></div>
     <form onsubmit="event.preventDefault();${tab==="in"?"doLogin()":"doSignup()"}">
       <input id="l_name" placeholder="${tab==="in"?"Username or email":"Username"}" autocomplete="username" maxlength="${tab==="in"?80:15}">
@@ -831,7 +847,7 @@ function loginScreen(tab="in"){
       <div id="l_err" class="err"></div>
       <button id="l_go" class="btn red big" type="submit">${tab==="in"?"Log in":"Create account"}</button>
     </form>
-    ${tab==="in"?`<a href="#" onclick="forgotScreen();return false" style="color:var(--red);font-weight:600">Forgot password?</a>`:""}
+    <div class="row" style="gap:18px;margin:4px 0">${tab==="in"?`<a href="#" onclick="forgotScreen();return false" style="color:var(--red);font-weight:600">Forgot password?</a>`:""}<a href="#" onclick="giftCodeBox();return false" style="color:var(--red);font-weight:600">🎁 Have a gift code?</a></div>
     <p class="muted small">${tab==="in"?"New here? Click <b>Sign up</b> to make your free account.":"Your Rooks and tokens are saved to your account. If you add an email, you'll log in with your email."}</p>
     ${supportLine()}`}</div>`;
 }
@@ -1008,6 +1024,7 @@ async function afterLogin(){
   try{localStorage.removeItem("redpup_mode")}catch(e){}
   renderNav(); renderUserChip();
   save(); go("home");
+  if(pendingGift()) setTimeout(showGiftPopup,900);
 }
 async function logout(){
   stopTimers(); leaveLive(); Music.stop();
@@ -1253,7 +1270,7 @@ function home(){
     <p>Hi <b>${esc(NAME())}</b>! ${TEACHER?"Host a game for your class, or make your own question sets.":"Got a game code from your teacher? Type it here!"}</p>
     ${TEACHER?`<div class="row"><button class="btn red big" onclick="go('host')">🎤 Host a Game</button><button class="btn big" onclick="go('create')">✏️ Create a Set</button></div>`
       :`<form class="joinbox" onsubmit="event.preventDefault();joinCode(jc.value)"><input id="jc" inputmode="numeric" maxlength="6" placeholder="123456"><button class="btn red big">Join</button></form>`}
-    <div class="row" style="margin-top:16px"><button class="btn" onclick="go('play')">▶ Solo Play</button><button class="btn" onclick="go('market')">🛒 Market</button><button class="btn" onclick="go('rooks')">🏰 My Rooks</button></div>
+    <div class="row" style="margin-top:16px"><button class="btn" onclick="go('play')">▶ Solo Play</button><button class="btn" onclick="go('market')">🛒 Market</button><button class="btn" onclick="go('rooks')">🏰 My Rooks</button><button class="btn" onclick="giftCodeBox()">🎁 Gift code</button></div>
     <div class="tiles">
       <div class="tile" style="background:linear-gradient(135deg,#e63940,#f77f00)" onclick="go('rooks')"><span>🏰</span><b>${owned} / ${visibleRooks().length} Rooks</b>collected</div>
       <div class="tile" style="background:linear-gradient(135deg,#7c3aed,#ec4899)" onclick="go('market')"><span>⭐</span><b>Weekly special</b>${esc(sp.rook)} + ${esc(sp.box)} Box on sale</div>
@@ -1739,12 +1756,7 @@ function buy(i){
   if(!boxStatus(b).ok) return;
   if(S.tokens<price) return showModal(`<div style="font-size:60px">😢</div><h2>Not enough tokens</h2><p>Play games to earn more!</p><br><button class="btn red" onclick="go('play')">Play</button>`);
   S.tokens-=price;
-  let roll=Math.random()*100, rar="Common";
-  const odds=boxOdds(b);
-  for(const k of RARITIES){ if(!odds[k]) continue; if(roll<odds[k]){rar=k;break;} roll-=odds[k]; }
-  let pool=ROOKS.filter(r=>r[1]===rar&&(r[5]===b.name||(rar==="Chroma"&&r[5]==="Any")));
-  if(!pool.length) pool=ROOKS.filter(r=>r[5]===b.name&&r[1]==="Common");
-  const got=pool[rand(0,pool.length-1)][0], isNew=!S.owned[got];
+  const got=rollBox(b), isNew=!S.owned[got];
   S.owned[got]=(S.owned[got]||0)+1; addStat("boxes"); save();
   openBoxAnim(b,got,()=>reveal(got,isNew,`<button class="btn red" onclick="buy(${i})">Open another (🪙${price})</button>`));
 }
@@ -2456,9 +2468,1519 @@ async function homeNews(){
 //  ADMIN — post news, give titles (admins are set in Firebase)
 // ====================================================================
 let ADMIN=false;
+// QR code maker — QRCode for JavaScript by Kazuhiko Arase (vendored from the qrcode-terminal package, Apache-2.0).
+const QR=(function(){ const M={}, C={};
+ function req(n){ n=n.replace(/^\.\//,'./').replace(/\.js$/,''); if(C[n]) return C[n].exports; const m={exports:{}}; C[n]=m; M[n](m,m.exports,req); return m.exports; }
+ M['./QR8bitByte']=function(module,exports,require){
+var QRMode = require('./QRMode');
+
+function QR8bitByte(data) {
+	this.mode = QRMode.MODE_8BIT_BYTE;
+	this.data = data;
+}
+
+QR8bitByte.prototype = {
+
+	getLength : function() {
+		return this.data.length;
+	},
+	
+	write : function(buffer) {
+		for (var i = 0; i < this.data.length; i++) {
+			// not JIS ...
+			buffer.put(this.data.charCodeAt(i), 8);
+		}
+	}
+};
+
+module.exports = QR8bitByte;
+
+};
+ M['./QRBitBuffer']=function(module,exports,require){
+function QRBitBuffer() {
+	this.buffer = [];
+	this.length = 0;
+}
+
+QRBitBuffer.prototype = {
+
+	get : function(index) {
+		var bufIndex = Math.floor(index / 8);
+		return ( (this.buffer[bufIndex] >>> (7 - index % 8) ) & 1) == 1;
+	},
+	
+	put : function(num, length) {
+		for (var i = 0; i < length; i++) {
+			this.putBit( ( (num >>> (length - i - 1) ) & 1) == 1);
+		}
+	},
+	
+	getLengthInBits : function() {
+		return this.length;
+	},
+	
+	putBit : function(bit) {
+	
+		var bufIndex = Math.floor(this.length / 8);
+		if (this.buffer.length <= bufIndex) {
+			this.buffer.push(0);
+		}
+	
+		if (bit) {
+			this.buffer[bufIndex] |= (0x80 >>> (this.length % 8) );
+		}
+	
+		this.length++;
+	}
+};
+
+module.exports = QRBitBuffer;
+
+};
+ M['./QRErrorCorrectLevel']=function(module,exports,require){
+module.exports = {
+	L : 1,
+	M : 0,
+	Q : 3,
+	H : 2
+};
+
+
+};
+ M['./QRMaskPattern']=function(module,exports,require){
+module.exports = {
+	PATTERN000 : 0,
+	PATTERN001 : 1,
+	PATTERN010 : 2,
+	PATTERN011 : 3,
+	PATTERN100 : 4,
+	PATTERN101 : 5,
+	PATTERN110 : 6,
+	PATTERN111 : 7
+};
+
+};
+ M['./QRMath']=function(module,exports,require){
+var QRMath = {
+
+	glog : function(n) {
+	
+		if (n < 1) {
+			throw new Error("glog(" + n + ")");
+		}
+		
+		return QRMath.LOG_TABLE[n];
+	},
+	
+	gexp : function(n) {
+	
+		while (n < 0) {
+			n += 255;
+		}
+	
+		while (n >= 256) {
+			n -= 255;
+		}
+	
+		return QRMath.EXP_TABLE[n];
+	},
+	
+	EXP_TABLE : new Array(256),
+	
+	LOG_TABLE : new Array(256)
+
+};
+	
+for (var i = 0; i < 8; i++) {
+	QRMath.EXP_TABLE[i] = 1 << i;
+}
+for (var i = 8; i < 256; i++) {
+	QRMath.EXP_TABLE[i] = QRMath.EXP_TABLE[i - 4]
+		^ QRMath.EXP_TABLE[i - 5]
+		^ QRMath.EXP_TABLE[i - 6]
+		^ QRMath.EXP_TABLE[i - 8];
+}
+for (var i = 0; i < 255; i++) {
+	QRMath.LOG_TABLE[QRMath.EXP_TABLE[i] ] = i;
+}
+
+module.exports = QRMath;
+
+};
+ M['./QRMode']=function(module,exports,require){
+module.exports = {
+    MODE_NUMBER :       1 << 0,
+    MODE_ALPHA_NUM :    1 << 1,
+    MODE_8BIT_BYTE :    1 << 2,
+    MODE_KANJI :        1 << 3
+};
+
+};
+ M['./QRPolynomial']=function(module,exports,require){
+var QRMath = require('./QRMath');
+
+function QRPolynomial(num, shift) {
+	if (num.length === undefined) {
+		throw new Error(num.length + "/" + shift);
+	}
+
+	var offset = 0;
+
+	while (offset < num.length && num[offset] === 0) {
+		offset++;
+	}
+
+	this.num = new Array(num.length - offset + shift);
+	for (var i = 0; i < num.length - offset; i++) {
+		this.num[i] = num[i + offset];
+	}
+}
+
+QRPolynomial.prototype = {
+
+	get : function(index) {
+		return this.num[index];
+	},
+	
+	getLength : function() {
+		return this.num.length;
+	},
+	
+	multiply : function(e) {
+	
+		var num = new Array(this.getLength() + e.getLength() - 1);
+	
+		for (var i = 0; i < this.getLength(); i++) {
+			for (var j = 0; j < e.getLength(); j++) {
+				num[i + j] ^= QRMath.gexp(QRMath.glog(this.get(i) ) + QRMath.glog(e.get(j) ) );
+			}
+		}
+	
+		return new QRPolynomial(num, 0);
+	},
+	
+	mod : function(e) {
+	
+		if (this.getLength() - e.getLength() < 0) {
+			return this;
+		}
+	
+		var ratio = QRMath.glog(this.get(0) ) - QRMath.glog(e.get(0) );
+	
+		var num = new Array(this.getLength() );
+		
+		for (var i = 0; i < this.getLength(); i++) {
+			num[i] = this.get(i);
+		}
+		
+		for (var x = 0; x < e.getLength(); x++) {
+			num[x] ^= QRMath.gexp(QRMath.glog(e.get(x) ) + ratio);
+		}
+	
+		// recursive call
+		return new QRPolynomial(num, 0).mod(e);
+	}
+};
+
+module.exports = QRPolynomial;
+
+};
+ M['./QRRSBlock']=function(module,exports,require){
+var QRErrorCorrectLevel = require('./QRErrorCorrectLevel');
+
+function QRRSBlock(totalCount, dataCount) {
+	this.totalCount = totalCount;
+	this.dataCount  = dataCount;
+}
+
+QRRSBlock.RS_BLOCK_TABLE = [
+
+	// L
+	// M
+	// Q
+	// H
+
+	// 1
+	[1, 26, 19],
+	[1, 26, 16],
+	[1, 26, 13],
+	[1, 26, 9],
+	
+	// 2
+	[1, 44, 34],
+	[1, 44, 28],
+	[1, 44, 22],
+	[1, 44, 16],
+
+	// 3
+	[1, 70, 55],
+	[1, 70, 44],
+	[2, 35, 17],
+	[2, 35, 13],
+
+	// 4		
+	[1, 100, 80],
+	[2, 50, 32],
+	[2, 50, 24],
+	[4, 25, 9],
+	
+	// 5
+	[1, 134, 108],
+	[2, 67, 43],
+	[2, 33, 15, 2, 34, 16],
+	[2, 33, 11, 2, 34, 12],
+	
+	// 6
+	[2, 86, 68],
+	[4, 43, 27],
+	[4, 43, 19],
+	[4, 43, 15],
+	
+	// 7		
+	[2, 98, 78],
+	[4, 49, 31],
+	[2, 32, 14, 4, 33, 15],
+	[4, 39, 13, 1, 40, 14],
+	
+	// 8
+	[2, 121, 97],
+	[2, 60, 38, 2, 61, 39],
+	[4, 40, 18, 2, 41, 19],
+	[4, 40, 14, 2, 41, 15],
+	
+	// 9
+	[2, 146, 116],
+	[3, 58, 36, 2, 59, 37],
+	[4, 36, 16, 4, 37, 17],
+	[4, 36, 12, 4, 37, 13],
+	
+	// 10		
+	[2, 86, 68, 2, 87, 69],
+	[4, 69, 43, 1, 70, 44],
+	[6, 43, 19, 2, 44, 20],
+	[6, 43, 15, 2, 44, 16],
+
+	// 11
+	[4, 101, 81],
+	[1, 80, 50, 4, 81, 51],
+	[4, 50, 22, 4, 51, 23],
+	[3, 36, 12, 8, 37, 13],
+
+	// 12
+	[2, 116, 92, 2, 117, 93],
+	[6, 58, 36, 2, 59, 37],
+	[4, 46, 20, 6, 47, 21],
+	[7, 42, 14, 4, 43, 15],
+
+	// 13
+	[4, 133, 107],
+	[8, 59, 37, 1, 60, 38],
+	[8, 44, 20, 4, 45, 21],
+	[12, 33, 11, 4, 34, 12],
+
+	// 14
+	[3, 145, 115, 1, 146, 116],
+	[4, 64, 40, 5, 65, 41],
+	[11, 36, 16, 5, 37, 17],
+	[11, 36, 12, 5, 37, 13],
+
+	// 15
+	[5, 109, 87, 1, 110, 88],
+	[5, 65, 41, 5, 66, 42],
+	[5, 54, 24, 7, 55, 25],
+	[11, 36, 12],
+
+	// 16
+	[5, 122, 98, 1, 123, 99],
+	[7, 73, 45, 3, 74, 46],
+	[15, 43, 19, 2, 44, 20],
+	[3, 45, 15, 13, 46, 16],
+
+	// 17
+	[1, 135, 107, 5, 136, 108],
+	[10, 74, 46, 1, 75, 47],
+	[1, 50, 22, 15, 51, 23],
+	[2, 42, 14, 17, 43, 15],
+
+	// 18
+	[5, 150, 120, 1, 151, 121],
+	[9, 69, 43, 4, 70, 44],
+	[17, 50, 22, 1, 51, 23],
+	[2, 42, 14, 19, 43, 15],
+
+	// 19
+	[3, 141, 113, 4, 142, 114],
+	[3, 70, 44, 11, 71, 45],
+	[17, 47, 21, 4, 48, 22],
+	[9, 39, 13, 16, 40, 14],
+
+	// 20
+	[3, 135, 107, 5, 136, 108],
+	[3, 67, 41, 13, 68, 42],
+	[15, 54, 24, 5, 55, 25],
+	[15, 43, 15, 10, 44, 16],
+
+	// 21
+	[4, 144, 116, 4, 145, 117],
+	[17, 68, 42],
+	[17, 50, 22, 6, 51, 23],
+	[19, 46, 16, 6, 47, 17],
+
+	// 22
+	[2, 139, 111, 7, 140, 112],
+	[17, 74, 46],
+	[7, 54, 24, 16, 55, 25],
+	[34, 37, 13],
+
+	// 23
+	[4, 151, 121, 5, 152, 122],
+	[4, 75, 47, 14, 76, 48],
+	[11, 54, 24, 14, 55, 25],
+	[16, 45, 15, 14, 46, 16],
+
+	// 24
+	[6, 147, 117, 4, 148, 118],
+	[6, 73, 45, 14, 74, 46],
+	[11, 54, 24, 16, 55, 25],
+	[30, 46, 16, 2, 47, 17],
+
+	// 25
+	[8, 132, 106, 4, 133, 107],
+	[8, 75, 47, 13, 76, 48],
+	[7, 54, 24, 22, 55, 25],
+	[22, 45, 15, 13, 46, 16],
+
+	// 26
+	[10, 142, 114, 2, 143, 115],
+	[19, 74, 46, 4, 75, 47],
+	[28, 50, 22, 6, 51, 23],
+	[33, 46, 16, 4, 47, 17],
+
+	// 27
+	[8, 152, 122, 4, 153, 123],
+	[22, 73, 45, 3, 74, 46],
+	[8, 53, 23, 26, 54, 24],
+	[12, 45, 15, 28, 46, 16],
+
+	// 28
+	[3, 147, 117, 10, 148, 118],
+	[3, 73, 45, 23, 74, 46],
+	[4, 54, 24, 31, 55, 25],
+	[11, 45, 15, 31, 46, 16],
+
+	// 29
+	[7, 146, 116, 7, 147, 117],
+	[21, 73, 45, 7, 74, 46],
+	[1, 53, 23, 37, 54, 24],
+	[19, 45, 15, 26, 46, 16],
+
+	// 30
+	[5, 145, 115, 10, 146, 116],
+	[19, 75, 47, 10, 76, 48],
+	[15, 54, 24, 25, 55, 25],
+	[23, 45, 15, 25, 46, 16],
+
+	// 31
+	[13, 145, 115, 3, 146, 116],
+	[2, 74, 46, 29, 75, 47],
+	[42, 54, 24, 1, 55, 25],
+	[23, 45, 15, 28, 46, 16],
+
+	// 32
+	[17, 145, 115],
+	[10, 74, 46, 23, 75, 47],
+	[10, 54, 24, 35, 55, 25],
+	[19, 45, 15, 35, 46, 16],
+
+	// 33
+	[17, 145, 115, 1, 146, 116],
+	[14, 74, 46, 21, 75, 47],
+	[29, 54, 24, 19, 55, 25],
+	[11, 45, 15, 46, 46, 16],
+
+	// 34
+	[13, 145, 115, 6, 146, 116],
+	[14, 74, 46, 23, 75, 47],
+	[44, 54, 24, 7, 55, 25],
+	[59, 46, 16, 1, 47, 17],
+
+	// 35
+	[12, 151, 121, 7, 152, 122],
+	[12, 75, 47, 26, 76, 48],
+	[39, 54, 24, 14, 55, 25],
+	[22, 45, 15, 41, 46, 16],
+
+	// 36
+	[6, 151, 121, 14, 152, 122],
+	[6, 75, 47, 34, 76, 48],
+	[46, 54, 24, 10, 55, 25],
+	[2, 45, 15, 64, 46, 16],
+
+	// 37
+	[17, 152, 122, 4, 153, 123],
+	[29, 74, 46, 14, 75, 47],
+	[49, 54, 24, 10, 55, 25],
+	[24, 45, 15, 46, 46, 16],
+
+	// 38
+	[4, 152, 122, 18, 153, 123],
+	[13, 74, 46, 32, 75, 47],
+	[48, 54, 24, 14, 55, 25],
+	[42, 45, 15, 32, 46, 16],
+
+	// 39
+	[20, 147, 117, 4, 148, 118],
+	[40, 75, 47, 7, 76, 48],
+	[43, 54, 24, 22, 55, 25],
+	[10, 45, 15, 67, 46, 16],
+
+	// 40
+	[19, 148, 118, 6, 149, 119],
+	[18, 75, 47, 31, 76, 48],
+	[34, 54, 24, 34, 55, 25],
+	[20, 45, 15, 61, 46, 16]
+];
+
+QRRSBlock.getRSBlocks = function(typeNumber, errorCorrectLevel) {
+	
+	var rsBlock = QRRSBlock.getRsBlockTable(typeNumber, errorCorrectLevel);
+	
+	if (rsBlock === undefined) {
+		throw new Error("bad rs block @ typeNumber:" + typeNumber + "/errorCorrectLevel:" + errorCorrectLevel);
+	}
+
+	var length = rsBlock.length / 3;
+	
+	var list = [];
+	
+	for (var i = 0; i < length; i++) {
+
+		var count = rsBlock[i * 3 + 0];
+		var totalCount = rsBlock[i * 3 + 1];
+		var dataCount  = rsBlock[i * 3 + 2];
+
+		for (var j = 0; j < count; j++) {
+			list.push(new QRRSBlock(totalCount, dataCount) );	
+		}
+	}
+	
+	return list;
+};
+
+QRRSBlock.getRsBlockTable = function(typeNumber, errorCorrectLevel) {
+
+	switch(errorCorrectLevel) {
+	case QRErrorCorrectLevel.L :
+		return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+	case QRErrorCorrectLevel.M :
+		return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+	case QRErrorCorrectLevel.Q :
+		return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+	case QRErrorCorrectLevel.H :
+		return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+	default :
+		return undefined;
+	}
+};
+
+module.exports = QRRSBlock;
+
+};
+ M['./QRUtil']=function(module,exports,require){
+var QRMode = require('./QRMode');
+var QRPolynomial = require('./QRPolynomial');
+var QRMath = require('./QRMath');
+var QRMaskPattern = require('./QRMaskPattern');
+
+var QRUtil = {
+
+    PATTERN_POSITION_TABLE : [
+        [],
+        [6, 18],
+        [6, 22],
+        [6, 26],
+        [6, 30],
+        [6, 34],
+        [6, 22, 38],
+        [6, 24, 42],
+        [6, 26, 46],
+        [6, 28, 50],
+        [6, 30, 54],        
+        [6, 32, 58],
+        [6, 34, 62],
+        [6, 26, 46, 66],
+        [6, 26, 48, 70],
+        [6, 26, 50, 74],
+        [6, 30, 54, 78],
+        [6, 30, 56, 82],
+        [6, 30, 58, 86],
+        [6, 34, 62, 90],
+        [6, 28, 50, 72, 94],
+        [6, 26, 50, 74, 98],
+        [6, 30, 54, 78, 102],
+        [6, 28, 54, 80, 106],
+        [6, 32, 58, 84, 110],
+        [6, 30, 58, 86, 114],
+        [6, 34, 62, 90, 118],
+        [6, 26, 50, 74, 98, 122],
+        [6, 30, 54, 78, 102, 126],
+        [6, 26, 52, 78, 104, 130],
+        [6, 30, 56, 82, 108, 134],
+        [6, 34, 60, 86, 112, 138],
+        [6, 30, 58, 86, 114, 142],
+        [6, 34, 62, 90, 118, 146],
+        [6, 30, 54, 78, 102, 126, 150],
+        [6, 24, 50, 76, 102, 128, 154],
+        [6, 28, 54, 80, 106, 132, 158],
+        [6, 32, 58, 84, 110, 136, 162],
+        [6, 26, 54, 82, 110, 138, 166],
+        [6, 30, 58, 86, 114, 142, 170]
+    ],
+
+    G15 : (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0),
+    G18 : (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0),
+    G15_MASK : (1 << 14) | (1 << 12) | (1 << 10)    | (1 << 4) | (1 << 1),
+
+    getBCHTypeInfo : function(data) {
+        var d = data << 10;
+        while (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G15) >= 0) {
+            d ^= (QRUtil.G15 << (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G15) ) );    
+        }
+        return ( (data << 10) | d) ^ QRUtil.G15_MASK;
+    },
+
+    getBCHTypeNumber : function(data) {
+        var d = data << 12;
+        while (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G18) >= 0) {
+            d ^= (QRUtil.G18 << (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G18) ) );    
+        }
+        return (data << 12) | d;
+    },
+
+    getBCHDigit : function(data) {
+
+        var digit = 0;
+
+        while (data !== 0) {
+            digit++;
+            data >>>= 1;
+        }
+
+        return digit;
+    },
+
+    getPatternPosition : function(typeNumber) {
+        return QRUtil.PATTERN_POSITION_TABLE[typeNumber - 1];
+    },
+
+    getMask : function(maskPattern, i, j) {
+        
+        switch (maskPattern) {
+            
+        case QRMaskPattern.PATTERN000 : return (i + j) % 2 === 0;
+        case QRMaskPattern.PATTERN001 : return i % 2 === 0;
+        case QRMaskPattern.PATTERN010 : return j % 3 === 0;
+        case QRMaskPattern.PATTERN011 : return (i + j) % 3 === 0;
+        case QRMaskPattern.PATTERN100 : return (Math.floor(i / 2) + Math.floor(j / 3) ) % 2 === 0;
+        case QRMaskPattern.PATTERN101 : return (i * j) % 2 + (i * j) % 3 === 0;
+        case QRMaskPattern.PATTERN110 : return ( (i * j) % 2 + (i * j) % 3) % 2 === 0;
+        case QRMaskPattern.PATTERN111 : return ( (i * j) % 3 + (i + j) % 2) % 2 === 0;
+
+        default :
+            throw new Error("bad maskPattern:" + maskPattern);
+        }
+    },
+
+    getErrorCorrectPolynomial : function(errorCorrectLength) {
+
+        var a = new QRPolynomial([1], 0);
+
+        for (var i = 0; i < errorCorrectLength; i++) {
+            a = a.multiply(new QRPolynomial([1, QRMath.gexp(i)], 0) );
+        }
+
+        return a;
+    },
+
+    getLengthInBits : function(mode, type) {
+
+        if (1 <= type && type < 10) {
+
+            // 1 - 9
+
+            switch(mode) {
+            case QRMode.MODE_NUMBER     : return 10;
+            case QRMode.MODE_ALPHA_NUM  : return 9;
+            case QRMode.MODE_8BIT_BYTE  : return 8;
+            case QRMode.MODE_KANJI      : return 8;
+            default :
+                throw new Error("mode:" + mode);
+            }
+
+        } else if (type < 27) {
+
+            // 10 - 26
+
+            switch(mode) {
+            case QRMode.MODE_NUMBER     : return 12;
+            case QRMode.MODE_ALPHA_NUM  : return 11;
+            case QRMode.MODE_8BIT_BYTE  : return 16;
+            case QRMode.MODE_KANJI      : return 10;
+            default :
+                throw new Error("mode:" + mode);
+            }
+
+        } else if (type < 41) {
+
+            // 27 - 40
+
+            switch(mode) {
+            case QRMode.MODE_NUMBER     : return 14;
+            case QRMode.MODE_ALPHA_NUM  : return 13;
+            case QRMode.MODE_8BIT_BYTE  : return 16;
+            case QRMode.MODE_KANJI      : return 12;
+            default :
+                throw new Error("mode:" + mode);
+            }
+
+        } else {
+            throw new Error("type:" + type);
+        }
+    },
+
+    getLostPoint : function(qrCode) {
+        
+        var moduleCount = qrCode.getModuleCount();
+        var lostPoint = 0;
+        var row = 0; 
+        var col = 0;
+
+        
+        // LEVEL1
+        
+        for (row = 0; row < moduleCount; row++) {
+
+            for (col = 0; col < moduleCount; col++) {
+
+                var sameCount = 0;
+                var dark = qrCode.isDark(row, col);
+
+                for (var r = -1; r <= 1; r++) {
+
+                    if (row + r < 0 || moduleCount <= row + r) {
+                        continue;
+                    }
+
+                    for (var c = -1; c <= 1; c++) {
+
+                        if (col + c < 0 || moduleCount <= col + c) {
+                            continue;
+                        }
+
+                        if (r === 0 && c === 0) {
+                            continue;
+                        }
+
+                        if (dark === qrCode.isDark(row + r, col + c) ) {
+                            sameCount++;
+                        }
+                    }
+                }
+
+                if (sameCount > 5) {
+                    lostPoint += (3 + sameCount - 5);
+                }
+            }
+        }
+
+        // LEVEL2
+
+        for (row = 0; row < moduleCount - 1; row++) {
+            for (col = 0; col < moduleCount - 1; col++) {
+                var count = 0;
+                if (qrCode.isDark(row,     col    ) ) count++;
+                if (qrCode.isDark(row + 1, col    ) ) count++;
+                if (qrCode.isDark(row,     col + 1) ) count++;
+                if (qrCode.isDark(row + 1, col + 1) ) count++;
+                if (count === 0 || count === 4) {
+                    lostPoint += 3;
+                }
+            }
+        }
+
+        // LEVEL3
+
+        for (row = 0; row < moduleCount; row++) {
+            for (col = 0; col < moduleCount - 6; col++) {
+                if (qrCode.isDark(row, col) && 
+                        !qrCode.isDark(row, col + 1) && 
+                         qrCode.isDark(row, col + 2) && 
+                         qrCode.isDark(row, col + 3) && 
+                         qrCode.isDark(row, col + 4) && 
+                        !qrCode.isDark(row, col + 5) && 
+                         qrCode.isDark(row, col + 6) ) {
+                    lostPoint += 40;
+                }
+            }
+        }
+
+        for (col = 0; col < moduleCount; col++) {
+            for (row = 0; row < moduleCount - 6; row++) {
+                if (qrCode.isDark(row, col) &&
+                        !qrCode.isDark(row + 1, col) &&
+                         qrCode.isDark(row + 2, col) &&
+                         qrCode.isDark(row + 3, col) &&
+                         qrCode.isDark(row + 4, col) &&
+                        !qrCode.isDark(row + 5, col) &&
+                         qrCode.isDark(row + 6, col) ) {
+                    lostPoint += 40;
+                }
+            }
+        }
+
+        // LEVEL4
+        
+        var darkCount = 0;
+
+        for (col = 0; col < moduleCount; col++) {
+            for (row = 0; row < moduleCount; row++) {
+                if (qrCode.isDark(row, col) ) {
+                    darkCount++;
+                }
+            }
+        }
+        
+        var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+        lostPoint += ratio * 10;
+
+        return lostPoint;       
+    }
+
+};
+
+module.exports = QRUtil;
+
+};
+ M['./index']=function(module,exports,require){
+//---------------------------------------------------------------------
+// QRCode for JavaScript
+//
+// Copyright (c) 2009 Kazuhiko Arase
+//
+// URL: http://www.d-project.com/
+//
+// Licensed under the MIT license:
+//   http://www.opensource.org/licenses/mit-license.php
+//
+// The word "QR Code" is registered trademark of 
+// DENSO WAVE INCORPORATED
+//   http://www.denso-wave.com/qrcode/faqpatent-e.html
+//
+//---------------------------------------------------------------------
+// Modified to work in node for this project (and some refactoring)
+//---------------------------------------------------------------------
+
+var QR8bitByte = require('./QR8bitByte');
+var QRUtil = require('./QRUtil');
+var QRPolynomial = require('./QRPolynomial');
+var QRRSBlock = require('./QRRSBlock');
+var QRBitBuffer = require('./QRBitBuffer');
+
+function QRCode(typeNumber, errorCorrectLevel) {
+	this.typeNumber = typeNumber;
+	this.errorCorrectLevel = errorCorrectLevel;
+	this.modules = null;
+	this.moduleCount = 0;
+	this.dataCache = null;
+	this.dataList = [];
+}
+
+QRCode.prototype = {
+	
+	addData : function(data) {
+		var newData = new QR8bitByte(data);
+		this.dataList.push(newData);
+		this.dataCache = null;
+	},
+	
+	isDark : function(row, col) {
+		if (row < 0 || this.moduleCount <= row || col < 0 || this.moduleCount <= col) {
+			throw new Error(row + "," + col);
+		}
+		return this.modules[row][col];
+	},
+
+	getModuleCount : function() {
+		return this.moduleCount;
+	},
+	
+	make : function() {
+		// Calculate automatically typeNumber if provided is < 1
+		if (this.typeNumber < 1 ){
+			var typeNumber = 1;
+			for (typeNumber = 1; typeNumber < 40; typeNumber++) {
+				var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, this.errorCorrectLevel);
+
+				var buffer = new QRBitBuffer();
+				var totalDataCount = 0;
+				for (var i = 0; i < rsBlocks.length; i++) {
+					totalDataCount += rsBlocks[i].dataCount;
+				}
+
+				for (var x = 0; x < this.dataList.length; x++) {
+					var data = this.dataList[x];
+					buffer.put(data.mode, 4);
+					buffer.put(data.getLength(), QRUtil.getLengthInBits(data.mode, typeNumber) );
+					data.write(buffer);
+				}
+				if (buffer.getLengthInBits() <= totalDataCount * 8)
+					break;
+			}
+			this.typeNumber = typeNumber;
+		}
+		this.makeImpl(false, this.getBestMaskPattern() );
+	},
+	
+	makeImpl : function(test, maskPattern) {
+		
+		this.moduleCount = this.typeNumber * 4 + 17;
+		this.modules = new Array(this.moduleCount);
+		
+		for (var row = 0; row < this.moduleCount; row++) {
+			
+			this.modules[row] = new Array(this.moduleCount);
+			
+			for (var col = 0; col < this.moduleCount; col++) {
+				this.modules[row][col] = null;//(col + row) % 3;
+			}
+		}
+	
+		this.setupPositionProbePattern(0, 0);
+		this.setupPositionProbePattern(this.moduleCount - 7, 0);
+		this.setupPositionProbePattern(0, this.moduleCount - 7);
+		this.setupPositionAdjustPattern();
+		this.setupTimingPattern();
+		this.setupTypeInfo(test, maskPattern);
+		
+		if (this.typeNumber >= 7) {
+			this.setupTypeNumber(test);
+		}
+	
+		if (this.dataCache === null) {
+			this.dataCache = QRCode.createData(this.typeNumber, this.errorCorrectLevel, this.dataList);
+		}
+	
+		this.mapData(this.dataCache, maskPattern);
+	},
+
+	setupPositionProbePattern : function(row, col)  {
+		
+		for (var r = -1; r <= 7; r++) {
+			
+			if (row + r <= -1 || this.moduleCount <= row + r) continue;
+			
+			for (var c = -1; c <= 7; c++) {
+				
+				if (col + c <= -1 || this.moduleCount <= col + c) continue;
+				
+				if ( (0 <= r && r <= 6 && (c === 0 || c === 6) ) || 
+                     (0 <= c && c <= 6 && (r === 0 || r === 6) ) || 
+                     (2 <= r && r <= 4 && 2 <= c && c <= 4) ) {
+					this.modules[row + r][col + c] = true;
+				} else {
+					this.modules[row + r][col + c] = false;
+				}
+			}		
+		}		
+	},
+	
+	getBestMaskPattern : function() {
+	
+		var minLostPoint = 0;
+		var pattern = 0;
+	
+		for (var i = 0; i < 8; i++) {
+			
+			this.makeImpl(true, i);
+	
+			var lostPoint = QRUtil.getLostPoint(this);
+	
+			if (i === 0 || minLostPoint >  lostPoint) {
+				minLostPoint = lostPoint;
+				pattern = i;
+			}
+		}
+	
+		return pattern;
+	},
+	
+	createMovieClip : function(target_mc, instance_name, depth) {
+	
+		var qr_mc = target_mc.createEmptyMovieClip(instance_name, depth);
+		var cs = 1;
+	
+		this.make();
+
+		for (var row = 0; row < this.modules.length; row++) {
+			
+			var y = row * cs;
+			
+			for (var col = 0; col < this.modules[row].length; col++) {
+	
+				var x = col * cs;
+				var dark = this.modules[row][col];
+			
+				if (dark) {
+					qr_mc.beginFill(0, 100);
+					qr_mc.moveTo(x, y);
+					qr_mc.lineTo(x + cs, y);
+					qr_mc.lineTo(x + cs, y + cs);
+					qr_mc.lineTo(x, y + cs);
+					qr_mc.endFill();
+				}
+			}
+		}
+		
+		return qr_mc;
+	},
+
+	setupTimingPattern : function() {
+		
+		for (var r = 8; r < this.moduleCount - 8; r++) {
+			if (this.modules[r][6] !== null) {
+				continue;
+			}
+			this.modules[r][6] = (r % 2 === 0);
+		}
+	
+		for (var c = 8; c < this.moduleCount - 8; c++) {
+			if (this.modules[6][c] !== null) {
+				continue;
+			}
+			this.modules[6][c] = (c % 2 === 0);
+		}
+	},
+	
+	setupPositionAdjustPattern : function() {
+	
+		var pos = QRUtil.getPatternPosition(this.typeNumber);
+		
+		for (var i = 0; i < pos.length; i++) {
+		
+			for (var j = 0; j < pos.length; j++) {
+			
+				var row = pos[i];
+				var col = pos[j];
+				
+				if (this.modules[row][col] !== null) {
+					continue;
+				}
+				
+				for (var r = -2; r <= 2; r++) {
+				
+					for (var c = -2; c <= 2; c++) {
+					
+						if (Math.abs(r) === 2 || 
+                            Math.abs(c) === 2 ||
+                            (r === 0 && c === 0) ) {
+							this.modules[row + r][col + c] = true;
+						} else {
+							this.modules[row + r][col + c] = false;
+						}
+					}
+				}
+			}
+		}
+	},
+	
+	setupTypeNumber : function(test) {
+	
+		var bits = QRUtil.getBCHTypeNumber(this.typeNumber);
+        var mod;
+	
+		for (var i = 0; i < 18; i++) {
+			mod = (!test && ( (bits >> i) & 1) === 1);
+			this.modules[Math.floor(i / 3)][i % 3 + this.moduleCount - 8 - 3] = mod;
+		}
+	
+		for (var x = 0; x < 18; x++) {
+			mod = (!test && ( (bits >> x) & 1) === 1);
+			this.modules[x % 3 + this.moduleCount - 8 - 3][Math.floor(x / 3)] = mod;
+		}
+	},
+	
+	setupTypeInfo : function(test, maskPattern) {
+	
+		var data = (this.errorCorrectLevel << 3) | maskPattern;
+		var bits = QRUtil.getBCHTypeInfo(data);
+        var mod;
+	
+		// vertical		
+		for (var v = 0; v < 15; v++) {
+	
+			mod = (!test && ( (bits >> v) & 1) === 1);
+	
+			if (v < 6) {
+				this.modules[v][8] = mod;
+			} else if (v < 8) {
+				this.modules[v + 1][8] = mod;
+			} else {
+				this.modules[this.moduleCount - 15 + v][8] = mod;
+			}
+		}
+	
+		// horizontal
+		for (var h = 0; h < 15; h++) {
+	
+			mod = (!test && ( (bits >> h) & 1) === 1);
+			
+			if (h < 8) {
+				this.modules[8][this.moduleCount - h - 1] = mod;
+			} else if (h < 9) {
+				this.modules[8][15 - h - 1 + 1] = mod;
+			} else {
+				this.modules[8][15 - h - 1] = mod;
+			}
+		}
+	
+		// fixed module
+		this.modules[this.moduleCount - 8][8] = (!test);
+	
+	},
+	
+	mapData : function(data, maskPattern) {
+		
+		var inc = -1;
+		var row = this.moduleCount - 1;
+		var bitIndex = 7;
+		var byteIndex = 0;
+		
+		for (var col = this.moduleCount - 1; col > 0; col -= 2) {
+	
+			if (col === 6) col--;
+	
+			while (true) {
+	
+				for (var c = 0; c < 2; c++) {
+					
+					if (this.modules[row][col - c] === null) {
+						
+						var dark = false;
+	
+						if (byteIndex < data.length) {
+							dark = ( ( (data[byteIndex] >>> bitIndex) & 1) === 1);
+						}
+	
+						var mask = QRUtil.getMask(maskPattern, row, col - c);
+	
+						if (mask) {
+							dark = !dark;
+						}
+						
+						this.modules[row][col - c] = dark;
+						bitIndex--;
+	
+						if (bitIndex === -1) {
+							byteIndex++;
+							bitIndex = 7;
+						}
+					}
+				}
+								
+				row += inc;
+	
+				if (row < 0 || this.moduleCount <= row) {
+					row -= inc;
+					inc = -inc;
+					break;
+				}
+			}
+		}
+		
+	}
+
+};
+
+QRCode.PAD0 = 0xEC;
+QRCode.PAD1 = 0x11;
+
+QRCode.createData = function(typeNumber, errorCorrectLevel, dataList) {
+	
+	var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectLevel);
+	
+	var buffer = new QRBitBuffer();
+	
+	for (var i = 0; i < dataList.length; i++) {
+		var data = dataList[i];
+		buffer.put(data.mode, 4);
+		buffer.put(data.getLength(), QRUtil.getLengthInBits(data.mode, typeNumber) );
+		data.write(buffer);
+	}
+
+	// calc num max data.
+	var totalDataCount = 0;
+	for (var x = 0; x < rsBlocks.length; x++) {
+		totalDataCount += rsBlocks[x].dataCount;
+	}
+
+	if (buffer.getLengthInBits() > totalDataCount * 8) {
+		throw new Error("code length overflow. (" + 
+            buffer.getLengthInBits() + 
+            ">" +  
+            totalDataCount * 8 + 
+            ")");
+	}
+
+	// end code
+	if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
+		buffer.put(0, 4);
+	}
+
+	// padding
+	while (buffer.getLengthInBits() % 8 !== 0) {
+		buffer.putBit(false);
+	}
+
+	// padding
+	while (true) {
+		
+		if (buffer.getLengthInBits() >= totalDataCount * 8) {
+			break;
+		}
+		buffer.put(QRCode.PAD0, 8);
+		
+		if (buffer.getLengthInBits() >= totalDataCount * 8) {
+			break;
+		}
+		buffer.put(QRCode.PAD1, 8);
+	}
+
+	return QRCode.createBytes(buffer, rsBlocks);
+};
+
+QRCode.createBytes = function(buffer, rsBlocks) {
+
+	var offset = 0;
+	
+	var maxDcCount = 0;
+	var maxEcCount = 0;
+	
+	var dcdata = new Array(rsBlocks.length);
+	var ecdata = new Array(rsBlocks.length);
+	
+	for (var r = 0; r < rsBlocks.length; r++) {
+
+		var dcCount = rsBlocks[r].dataCount;
+		var ecCount = rsBlocks[r].totalCount - dcCount;
+
+		maxDcCount = Math.max(maxDcCount, dcCount);
+		maxEcCount = Math.max(maxEcCount, ecCount);
+		
+		dcdata[r] = new Array(dcCount);
+		
+		for (var i = 0; i < dcdata[r].length; i++) {
+			dcdata[r][i] = 0xff & buffer.buffer[i + offset];
+		}
+		offset += dcCount;
+		
+		var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+		var rawPoly = new QRPolynomial(dcdata[r], rsPoly.getLength() - 1);
+
+		var modPoly = rawPoly.mod(rsPoly);
+		ecdata[r] = new Array(rsPoly.getLength() - 1);
+		for (var x = 0; x < ecdata[r].length; x++) {
+            var modIndex = x + modPoly.getLength() - ecdata[r].length;
+			ecdata[r][x] = (modIndex >= 0)? modPoly.get(modIndex) : 0;
+		}
+
+	}
+	
+	var totalCodeCount = 0;
+	for (var y = 0; y < rsBlocks.length; y++) {
+		totalCodeCount += rsBlocks[y].totalCount;
+	}
+
+	var data = new Array(totalCodeCount);
+	var index = 0;
+
+	for (var z = 0; z < maxDcCount; z++) {
+		for (var s = 0; s < rsBlocks.length; s++) {
+			if (z < dcdata[s].length) {
+				data[index++] = dcdata[s][z];
+			}
+		}
+	}
+
+	for (var xx = 0; xx < maxEcCount; xx++) {
+		for (var t = 0; t < rsBlocks.length; t++) {
+			if (xx < ecdata[t].length) {
+				data[index++] = ecdata[t][xx];
+			}
+		}
+	}
+
+	return data;
+
+};
+
+module.exports = QRCode;
+
+};
+ const QRCode=req('./index'), ECL=req('./QRErrorCorrectLevel');
+ function matrix(text){ const q=new QRCode(-1,ECL.M); q.addData(text); q.make(); const n=q.getModuleCount(), a=[]; for(let r=0;r<n;r++){ a.push([]); for(let c=0;c<n;c++) a[r].push(q.isDark(r,c)); } return a; }
+ function canvas(text,scale,margin){ scale=scale||8; margin=margin==null?4:margin; const m=matrix(text), n=m.length, cv=document.createElement('canvas'); cv.width=cv.height=(n+margin*2)*scale; const x=cv.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,cv.width,cv.height); x.fillStyle='#000'; m.forEach((row,r)=>row.forEach((d,c)=>{ if(d) x.fillRect((c+margin)*scale,(r+margin)*scale,scale,scale); })); return cv; }
+ return {matrix,canvas};
+})();
+// ====================================================================
+//  GIFT CODES + POSTERS — the admin makes a code, RedPup makes the QR code and a poster.
+//  Scanning opens  redpup.org/?code=CODE . Each account can use each code once
+//  (Firebase checks that, and who's allowed: new players / anyone / picked players).
+// ====================================================================
+(function readGiftLink(){
+  try{
+    const u=new URL(location.href), c=(u.searchParams.get("code")||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+    if(c.length>=4&&c.length<=20){ localStorage.setItem("redpup_gift",c); u.searchParams.delete("code"); history.replaceState(null,"",u.pathname+(u.search||"")+u.hash); }
+  }catch(e){}
+})();
+function pendingGift(){ try{ return localStorage.getItem("redpup_gift")||""; }catch(e){ return ""; } }
+function setPendingGift(c){ try{ c?localStorage.setItem("redpup_gift",c):localStorage.removeItem("redpup_gift"); }catch(e){} }
+const cleanCode=v=>String(v||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+function giftParts(g){
+  const p=[];
+  if(g.tokens>0) p.push(`${Number(g.tokens).toLocaleString()} tokens`);
+  if(g.rook&&R[g.rook]) p.push(`the ${g.rook} Rook`);
+  if(g.box&&g.boxes>0){ const b=BOXES.find(x=>x.name===g.box); if(b) p.push(`${g.boxes>1?g.boxes+" free ":"a free "}${boxLabel(b.name)}${g.boxes>1?"es":""}`); }
+  return p;
+}
+function giftWho(g){ return g.who==="new"?"New players only":g.who==="players"?"For special invited players":"Anyone can use it"; }
+function rollBox(b){
+  let roll=Math.random()*100, rar="Common"; const odds=boxOdds(b);
+  for(const k of RARITIES){ if(!odds[k]) continue; if(roll<odds[k]){rar=k;break;} roll-=odds[k]; }
+  let pool=ROOKS.filter(r=>r[1]===rar&&(r[5]===b.name||(rar==="Chroma"&&r[5]==="Any")));
+  if(!pool.length) pool=ROOKS.filter(r=>r[5]===b.name&&r[1]==="Common");
+  return pool[rand(0,pool.length-1)][0];
+}
+
+// ---------- players: type a code, see the gift, claim it ----------
+function giftCodeBox(){
+  showModal(`<h2>🎁 Have a gift code?</h2><p class="muted">Type the code from a RedPup poster or QR code.</p>
+    <form onsubmit="event.preventDefault();useTypedGift()"><input id="gc_in" maxlength="20" placeholder="SCHOOL500" autocomplete="off" style="text-transform:uppercase;text-align:center;font-size:22px;letter-spacing:2px"></form>
+    <div id="gc_err" class="err"></div><button class="btn red" onclick="useTypedGift()">Use code</button>`);
+  setTimeout(()=>{ const i=document.getElementById("gc_in"); if(i) i.focus(); },50);
+}
+function useTypedGift(){
+  const c=cleanCode((document.getElementById("gc_in")||{}).value);
+  if(c.length<4) return document.getElementById("gc_err").textContent="Codes are 4–20 letters or numbers.";
+  setPendingGift(c); closeModal();
+  if(UID&&S) showGiftPopup(); else loginScreen(document.querySelector(".login .tabs .on")&&document.querySelector(".login .tabs .on").textContent==="Sign up"?"up":"in");
+}
+function giftBanner(){ const c=pendingGift(); return c?`<div class="giftbanner">🎁 You have a gift code <b>${esc(c)}</b>! Log in or sign up to claim it.</div>`:""; }
+async function showGiftPopup(){
+  const code=pendingGift(); if(!code||!UID) return;
+  if(TEST){ setPendingGift(""); return toast("Gift codes don't work in test mode."); }
+  let g=null; try{ g=await FB.giftGet(code); }catch(e){}
+  if(!g||!g.on){ setPendingGift(""); return showModal(`<div style="font-size:60px">😕</div><h2>That code isn't working</h2><p class="muted"><b>${esc(code)}</b> doesn't exist or was turned off.</p><button class="btn red" onclick="closeModal()">OK</button>`); }
+  showModal(`<div class="pop" style="font-size:70px">🎁</div><h2>You got a gift!</h2>
+    <p style="font-size:20px;font-weight:800;color:var(--red)">${esc(giftParts(g).join(" + "))}</p>
+    ${g.rook&&R[g.rook]?`<div>${rookSVG(g.rook,90)}</div>`:""}
+    <p class="muted small">${esc(giftWho(g))} · code ${esc(code)}</p>
+    <div class="row"><button class="btn red big" id="gc_go" onclick="claimGift()">Claim it!</button><button class="btn" onclick="setPendingGift('');closeModal()">Not now</button></div>`);
+}
+async function claimGift(){
+  const code=pendingGift(); if(!code||!UID||TEST) return;
+  const btn=document.getElementById("gc_go"); if(btn){ btn.disabled=true; btn.textContent="Claiming…"; }
+  const fail=msg=>{ setPendingGift(""); showModal(`<div style="font-size:60px">😕</div><h2>${msg}</h2><button class="btn red" onclick="closeModal()">OK</button>`); };
+  let g=null; try{ g=await FB.giftGet(code); }catch(e){}
+  if(!g||!g.on) return fail("That code isn't working anymore.");
+  if(g.who==="players"&&!(g.players||[]).includes(UID)) return fail("That gift is for someone else. Sorry!");
+  if(g.who==="new"){ let u=null; try{ u=await FB.lookup(NAME()); }catch(e){}
+    if(!u||!u.created||Date.now()-u.created>3600000) return fail("That gift is for brand-new players only."); }
+  try{ if(await FB.giftUsed(code)) return fail("You already got this gift!"); }catch(e){}
+  try{ await FB.giftRedeem(code,NAME().toLowerCase()); }
+  catch(e){ return fail("Couldn't claim this gift. It may not be for you."); }
+  setPendingGift("");
+  // give everything first and save, then show the fun part
+  const got=[], rolls=[];
+  if(g.tokens>0){ S.tokens+=Math.floor(g.tokens); got.push(`+${g.tokens} tokens`); }
+  if(g.rook&&R[g.rook]){ S.owned[g.rook]=(S.owned[g.rook]||0)+1; got.push(g.rook); }
+  const b=g.box&&BOXES.find(x=>x.name===g.box);
+  if(b) for(let i=0;i<Math.min(10,g.boxes||0);i++){ const r=rollBox(b); rolls.push([r,!S.owned[r]]); S.owned[r]=(S.owned[r]||0)+1; addStat("boxes"); }
+  save(); Music.sfx("win"); confetti();
+  GIFTROLLS={b,rolls,i:0};
+  showModal(`<div class="pop" style="font-size:70px">🎉</div><h2>Gift claimed!</h2><p style="font-size:18px;font-weight:700">${esc(got.join(" · ")||"")}</p>
+    ${g.rook&&R[g.rook]?`<div class="rays ${R[g.rook][1]}"><div class="reveal ${R[g.rook][1]} pop">${rookSVG(g.rook,120)}</div></div>`:""}
+    ${rolls.length?`<button class="btn red big" onclick="nextGiftBox()">Open your free ${esc(boxLabel(b.name))}${rolls.length>1?" ("+rolls.length+")":""} 🎁</button>`:`<button class="btn red" onclick="closeModal()">Yay!</button>`}`);
+}
+let GIFTROLLS=null;
+function nextGiftBox(){
+  const G2=GIFTROLLS; if(!G2||G2.i>=G2.rolls.length) return closeModal();
+  const [r,isNew]=G2.rolls[G2.i++], left=G2.rolls.length-G2.i;
+  openBoxAnim(G2.b,r,()=>reveal(r,isNew,left?`<button class="btn red" onclick="nextGiftBox()">Open the next one (${left} left)</button>`:""));
+}
+
+// ---------- admin: make codes, QR codes and posters ----------
+const GC={who:"new",players:[],results:[]};
+const siteBase=()=>location.origin+location.pathname.replace(/[^/]*$/,"");
+const giftLink=code=>siteBase()+"?code="+code;
+function randomGiftCode(){ const a="ABCDEFGHJKMNPQRSTUVWXYZ23456789"; let s=""; for(let i=0;i<8;i++) s+=a[Math.floor(Math.random()*a.length)]; return s; }
+function adminGiftsHTML(){
+  const rookOpts=ROOKS.filter(r=>r[0]!=="THE ROOK").map(r=>`<option value="${esc(r[0])}">${esc(r[0])} (${r[1]})</option>`).join("");
+  const boxOpts=BOXES.map(b=>`<option value="${esc(b.name)}">${b.ic} ${esc(boxLabel(b.name))}</option>`).join("");
+  return `<div class="prefs" id="giftpanel"><b>🎁 Gift codes &amp; posters</b>
+    <p class="small muted">Make a code, then download its QR code or a poster to print. Scanning it opens RedPup with the gift ready to claim.</p>
+    <div class="gform">
+      <label>Code <input id="gf_code" maxlength="20" autocomplete="off" spellcheck="false" style="text-transform:uppercase"></label>
+      <label>Tokens <input id="gf_tok" type="number" min="0" max="100000" value="500"></label>
+      <label>Free Rook <select id="gf_rook"><option value="">No Rook</option>${rookOpts}</select></label>
+      <label>Free box <select id="gf_box"><option value="">No box</option>${boxOpts}</select></label>
+      <label>How many boxes <input id="gf_boxes" type="number" min="1" max="10" value="1"></label>
+      <label>Made by (optional, on the poster) <input id="gf_by" maxlength="40" placeholder="e.g. Peel"></label>
+    </div>
+    <div class="gwho"><b>Who can use it?</b>
+      <label><input type="radio" name="gf_who" value="new" checked onchange="giftWhoPick(this.value)"> New players only <span class="muted small">(signed up in the last hour)</span></label>
+      <label><input type="radio" name="gf_who" value="anyone" onchange="giftWhoPick(this.value)"> Anyone (new or already playing)</label>
+      <label><input type="radio" name="gf_who" value="players" onchange="giftWhoPick(this.value)"> Only these players:</label>
+    </div>
+    <div id="gf_players" hidden>
+      <div class="tform" style="grid-template-columns:1fr auto"><input id="gf_q" placeholder="Search usernames" onkeydown="if(event.key==='Enter'){event.preventDefault();giftSearch()}"><button class="btn small" onclick="giftSearch()">Search</button></div>
+      <div class="chips" id="gf_chips"></div><div id="gf_res"></div>
+    </div>
+    <div><button class="btn red small" onclick="createGift()">Create code + QR</button></div>
+    <div id="gf_err" class="err"></div>
+    <div id="gf_out"></div>
+    <b style="display:block;margin-top:14px">📋 Your gift codes</b><div id="gf_list"><p class="muted small">Loading…</p></div>
+  </div>`;
+}
+function giftWhoPick(v){ GC.who=v; document.getElementById("gf_players").hidden=v!=="players"; }
+async function giftSearch(){
+  const q=(document.getElementById("gf_q").value||"").trim().toLowerCase().replace(/[^a-z0-9_]/g,""); if(!q) return;
+  try{ GC.results=(await FB.searchUsers(q)).filter(u=>u.uid); }catch(e){ GC.results=[]; }
+  renderGiftPlayers();
+}
+function renderGiftPlayers(){
+  const chips=document.getElementById("gf_chips"), res=document.getElementById("gf_res"); if(!chips) return;
+  chips.innerHTML=GC.players.map((p,i)=>`<button class="chip" onclick="GC.players.splice(${i},1);renderGiftPlayers()">${esc(p.name)} ✕</button>`).join("");
+  res.innerHTML=GC.results.length?GC.results.map((u,i)=>{ const on=GC.players.some(p=>p.uid===u.uid);
+    return `<div class="trow"><b>${esc(u.name)}</b><button class="btn small ${on?"":"red"}" ${on?"disabled":""} onclick="giftAddPlayer(${i})">${on?"Added ✓":"Add"}</button></div>`; }).join(""):"";
+}
+function giftAddPlayer(i){ const u=GC.results[i]; if(u&&!GC.players.some(p=>p.uid===u.uid)) GC.players.push({uid:u.uid,name:u.name}); renderGiftPlayers(); }
+function adminGifts(){
+  const c=document.getElementById("gf_code"); if(!c) return;
+  c.value=randomGiftCode(); GC.who="new"; GC.players=[]; GC.results=[]; renderGiftPlayers(); loadGifts();
+}
+async function createGift(){
+  const err=document.getElementById("gf_err"); err.textContent="";
+  const v=id=>document.getElementById(id).value, code=cleanCode(v("gf_code"));
+  if(code.length<4||code.length>20) return err.textContent="Codes are 4–20 letters or numbers.";
+  const g={code,tokens:Math.max(0,Math.min(100000,Math.floor(+v("gf_tok")||0))),rook:v("gf_rook"),box:v("gf_box"),
+    boxes:v("gf_box")?Math.max(1,Math.min(10,Math.floor(+v("gf_boxes")||1))):0,by:v("gf_by").trim().slice(0,40),
+    who:GC.who,players:GC.who==="players"?GC.players.map(p=>p.uid).slice(0,50):[],names:GC.who==="players"?GC.players.map(p=>p.name).slice(0,50):[],on:true,created:Date.now()};
+  if(!g.tokens&&!g.rook&&!g.box) return err.textContent="Pick at least one reward.";
+  if(g.who==="players"&&!g.players.length) return err.textContent="Add at least one player.";
+  try{ if(await FB.giftGet(code)) return err.textContent="That code already exists. Pick another one.";
+    await FB.giftCreate(code,g); }
+  catch(e){ return err.textContent="Couldn't save. Publish the newest Firestore rules first."; }
+  toast(`🎁 Gift code ${code} created!`);
+  showGiftQR(g);
+  document.getElementById("gf_code").value=randomGiftCode();
+  loadGifts();
+}
+function showGiftQR(g){
+  const box=document.getElementById("gf_out"); if(!box) return;
+  box.innerHTML=`<div class="qrbox"><div id="gf_qr"></div><div>
+    <h3 style="margin:0">${esc(g.code)}${g.on?"":" (off)"}</h3>
+    <p class="small"><b>${esc(giftParts(g).join(" + "))}</b><br>${esc(g.who==="players"?"For "+(g.names||[]).join(", "):giftWho(g))}</p>
+    <p class="small qrlink">${esc(giftLink(g.code))}</p>
+    <div class="row" style="justify-content:flex-start">
+      <button class="btn small red" onclick="dlGiftQR('${g.code}')">⬇️ Download QR code</button>
+      <button class="btn small red" onclick="dlPoster('${g.code}')">🖼️ Download poster</button>
+      <button class="btn small" onclick="printPoster('${g.code}')">🖨️ Print poster</button>
+    </div></div></div>`;
+  document.getElementById("gf_qr").appendChild(QR.canvas(giftLink(g.code),6,2));
+  GIFTCACHE[g.code]=g;
+}
+const GIFTCACHE={};
+function downloadCanvas(cv,name){ const a=document.createElement("a"); a.download=name; a.href=cv.toDataURL("image/png"); document.body.appendChild(a); a.click(); a.remove(); }
+function dlGiftQR(code){ downloadCanvas(QR.canvas(giftLink(code),20,4),`redpup-${code}-qr.png`); }
+async function dlPoster(code){ const g=GIFTCACHE[code]; if(!g) return; toast("Making your poster…"); downloadCanvas(await makePoster(g),`redpup-${code}-poster.png`); }
+async function printPoster(code){
+  const g=GIFTCACHE[code]; if(!g) return; const w=window.open("","_blank"); if(!w) return toast("Allow pop-ups to print.");
+  w.document.write("<title>RedPup poster</title><p style='font-family:sans-serif'>Making your poster…</p>");
+  const url=(await makePoster(g)).toDataURL("image/png");
+  w.document.body.innerHTML=`<style>@page{margin:0}body{margin:0}img{width:100%;display:block}</style><img src="${url}" onload="setTimeout(()=>print(),200)">`;
+}
+async function loadGifts(){
+  const list=document.getElementById("gf_list"); if(!list) return;
+  let gs=[]; try{ gs=await FB.giftList(); }catch(e){ return list.innerHTML=`<p class="muted small">Couldn't load codes. Publish the newest Firestore rules.</p>`; }
+  if(!gs.length) return list.innerHTML=`<p class="muted small">No gift codes yet.</p>`;
+  gs.forEach(g=>GIFTCACHE[g.code]=g);
+  list.innerHTML=gs.map(g=>`<div class="trow giftrow ${g.on?"":"off"}"><div><b>${esc(g.code)}</b>${g.on?"":" <span class='muted small'>(off)</span>"}<br>
+      <span class="small">${esc(giftParts(g).join(" + "))} · ${esc(g.who==="players"?"For "+(g.names||[]).join(", "):giftWho(g))} · <span id="gu_${g.code}">counting uses…</span></span></div>
+    <div class="row" style="margin:0"><button class="btn small" onclick="showGiftQR(GIFTCACHE['${g.code}']);document.getElementById('gf_out').scrollIntoView({behavior:'smooth',block:'nearest'})">Show QR</button>
+      <button class="btn small ${g.on?"":"red"}" onclick="toggleGift('${g.code}',${!g.on})">${g.on?"Turn off":"Turn on"}</button></div></div>`).join("");
+  gs.forEach(async g=>{ const el=()=>document.getElementById("gu_"+g.code);
+    try{ const n=await FB.giftUses(g.code); if(el()) el().textContent=`used ${n} time${n===1?"":"s"}`; }catch(e){ if(el()) el().textContent=""; } });
+}
+async function toggleGift(code,on){ try{ await FB.giftSetOn(code,on); if(GIFTCACHE[code]) GIFTCACHE[code].on=on; loadGifts(); }catch(e){ toast("Couldn't change it."); } }
+
+// ---------- the poster (drawn on a canvas, 1200 × 1700) ----------
+function svgImg(svg){
+  if(!/xmlns=/.test(svg)) svg=svg.replace("<svg",'<svg xmlns="http://www.w3.org/2000/svg"');
+  return new Promise(res=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=()=>res(null); i.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg); });
+}
+function imgFrom(src){ return new Promise(res=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=()=>res(null); i.src=src; }); }
+function fitFont(x,text,maxW,size,font){ let s=size; do{ x.font=font.replace("{s}",s); s-=2; }while(x.measureText(text).width>maxW&&s>16); }
+async function makePoster(g){
+  const W=1200,H=1700,cv=document.createElement("canvas"); cv.width=W; cv.height=H; const x=cv.getContext("2d");
+  const F='"Fredoka","Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif';
+  const rr=(X,Y,w,h,r)=>{ x.beginPath(); x.roundRect(X,Y,w,h,r); };
+  // red top with stripes
+  x.fillStyle="#e63940"; x.fillRect(0,0,W,H);
+  x.save(); x.globalAlpha=.08; x.fillStyle="#fff"; for(let i=-H;i<W;i+=90){ x.beginPath(); x.moveTo(i,0); x.lineTo(i+45,0); x.lineTo(i+45+H,H); x.lineTo(i+H,H); x.fill(); } x.restore();
+  // logo on a dark rounded card
+  const logo=await imgFrom(document.querySelector(".logo img")?document.querySelector(".logo img").src:LOGO_LIGHT);
+  if(logo){ const lw=720, lh=Math.min(logo.height*lw/logo.width,240); x.fillStyle="#2b1b1d"; rr((W-lw)/2-30,48,lw+60,lh+40,36); x.fill(); x.drawImage(logo,(W-lw)/2,68,lw,lh); }
+  x.textAlign="center"; x.fillStyle="#fff"; fitFont(x,"Answer questions. Open boxes. Collect Rooks!",W-120,54,"800 {s}px "+F);
+  x.fillText("Answer questions. Open boxes. Collect Rooks!",W/2,300);
+  // shelf of Rooks
+  const star=g.rook&&R[g.rook]?g.rook:"Dragonkeep";
+  const row=["Pebble","Sir Turret",star,"Royal Rook","Flagbearer"].map(n=>R[n]?n:ROOKS[0][0]);
+  const sizes=[150,170,250,170,150], gap=20, tot=sizes.reduce((a,b)=>a+b,0)+gap*4; let px=(W-tot)/2;
+  const shelfY=600; x.fillStyle="#8b1d24"; rr(80,shelfY-10,W-160,34,17); x.fill();
+  for(let i=0;i<5;i++){ const im=await svgImg(rookSVG(row[i],sizes[i])); const sz=sizes[i];
+    if(i===2){ x.save(); x.shadowColor="#ffd166"; x.shadowBlur=60; }
+    if(im) x.drawImage(im,px,shelfY-sz,sz,sz);
+    if(i===2) x.restore(); px+=sz+gap; }
+  // feature pills
+  const pills=["⚔️ Rook Battles","🏰 Castle Raid","♜ Checkmate","🔁 Trading"]; x.font="700 30px "+F;
+  const pw=pills.map(p=>x.measureText(p).width+44), ptot=pw.reduce((a,b)=>a+b,0)+16*3; let qx=(W-ptot)/2;
+  pills.forEach((p,i)=>{ x.fillStyle="rgba(255,255,255,.18)"; rr(qx,650,pw[i],58,29); x.fill(); x.fillStyle="#fff"; x.textAlign="left"; x.fillText(p,qx+22,690); qx+=pw[i]+16; });
+  // white card
+  x.fillStyle="#fffaf0"; x.strokeStyle="#2b1b1d"; x.lineWidth=10; rr(60,760,W-120,H-820,48); x.fill(); x.stroke();
+  // gift banner (two lines)
+  x.fillStyle="#ffc53d"; rr(100,800,W-200,200,36); x.fill(); x.lineWidth=6; x.stroke();
+  x.textAlign="center"; x.fillStyle="#5a3b00"; x.font="800 46px "+F; x.fillText("🎁 SCAN TO GET",W/2,872);
+  const gift=(giftParts(g).join(" + ")||"a gift")+"!";
+  fitFont(x,gift,W-260,72,"800 {s}px "+F); x.fillText(gift,W/2,960);
+  // left text + QR on the right
+  const qs=440, qxx=W-100-qs, qy=1090;
+  const qr=QR.canvas(giftLink(g.code),12,2); x.imageSmoothingEnabled=false; x.drawImage(qr,qxx,qy,qs,qs); x.imageSmoothingEnabled=true;
+  x.lineWidth=8; x.strokeStyle="#2b1b1d"; rr(qxx-6,qy-6,qs+12,qs+12,16); x.stroke();
+  x.textAlign="center"; x.fillStyle="#2b1b1d"; x.font="800 32px "+F; x.fillText("📱 Scan me!",qxx+qs/2,qy-24);
+  x.textAlign="left"; x.fillStyle="#2b1b1d"; x.font="700 44px "+F; x.fillText("Play free at",110,1150);
+  const host=siteBase().replace(/^https?:\/\//,"").replace(/\/$/,"");
+  x.fillStyle="#e63940"; fitFont(x,host,qxx-150,96,"800 {s}px "+F); x.fillText(host,110,1250);
+  x.fillStyle="#2b1b1d"; x.font="600 34px "+F;
+  ["✅ Free to play","🏫 Play live with your class","🎁 Use code "+g.code].forEach((t,i)=>x.fillText(t,110,1340+i*58));
+  x.fillStyle="#7a6a6c"; x.font="600 28px "+F; x.fillText(giftWho(g)+" · one per account",110,1560);
+  if(g.by){ x.textAlign="right"; x.fillStyle="#7a6a6c"; x.font="600 26px "+F; x.fillText("Made by "+g.by,qxx+qs,qy+qs+46); }
+  return cv;
+}
+
 function admin(){
   if(!ADMIN) return go("home");
   app.innerHTML=`<div class="card fade"><h1>🛡️ Admin</h1>
+    ${adminGiftsHTML()}
     <div class="prefs"><b>🚫 Banned players</b><div class="tform" style="grid-template-columns:1fr auto"><input id="b_user" placeholder="Ban a username" maxlength="15"><button class="btn red small" onclick="banByName()">Ban</button></div><div id="bans"><p class="muted small">Loading…</p></div></div>
     <div class="prefs"><b>📰 Post news</b>
       <input id="n_title" placeholder="Headline (or your poll question)" maxlength="80"><textarea id="n_body" rows="4" placeholder="What's new? (optional for a poll)" maxlength="1500"></textarea>
@@ -2487,7 +4009,7 @@ function admin(){
       <div class="row" style="justify-content:flex-start"><button class="btn red small" onclick="findByGlow()">Search</button></div>
       <div id="gl_out" class="small"></div></div>
     <div class="prefs"><b>📰 Posted news</b><div id="adm_news"><p class="muted small">Loading…</p></div></div></div>`;
-  loadBans();
+  loadBans(); adminGifts();
   loadNews(true).then(l=>{ const e=document.getElementById("adm_news"); if(e){ e.innerHTML=l.length?l.map(n=>newsCard(n,true)).join(""):`<p class="muted small">Nothing posted yet.</p>`; hydratePolls(l); } });
 }
 let POLL_OPTS=["",""];
