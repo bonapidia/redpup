@@ -14,10 +14,11 @@
   const base=location.pathname.startsWith("/redpup/")?"/redpup/":"/";
   document.getElementById("home").href=base;
   const path=decodeURIComponent(location.pathname.slice(base.length)).replace(/\/+/g,"/").replace(/^\/|\/$/g,"").toLowerCase();
-  let ok=false;
+  let h="";
   try{ const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(path));
-    ok=[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("")==="3fb773dc082a99772273b2d643c2ce4868896721bbbfe9c9b39d896da23b2919"; }catch(e){}
-  if(ok){ try{ sessionStorage.setItem("redpup_test_go","1"); }catch(e){} location.replace(base); return; }
+    h=[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join(""); }catch(e){}
+  if(h==="3fb773dc082a99772273b2d643c2ce4868896721bbbfe9c9b39d896da23b2919"){ try{ sessionStorage.setItem("redpup_test_go","1"); }catch(e){} location.replace(base); return; }
+  if(h==="e527e3189b6142c3473b4be0632da8470768d37c4529c009580f2d115f8d1a84"){ try{ sessionStorage.setItem("redpup_anytime","1"); }catch(e){} location.replace(base); return; }
   document.getElementById("pg").style.visibility="visible";
 })();
 </script></body></html>
