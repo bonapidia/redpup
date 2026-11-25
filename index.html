@@ -253,10 +253,12 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   .ear{position:absolute;left:16.5%;top:13%;width:5.6%;height:64%;cursor:pointer}
   .login form{display:grid;gap:10px}
   /* ---- box opening ---- */
-  .boxopen{position:relative;height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;border-radius:16px}
-  .boxic{font-size:110px;line-height:1;transition:filter .3s}
+  .boxopen{position:relative;isolation:isolate;height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;border-radius:16px}
+  .boxic{font-size:110px;line-height:1;transition:filter .3s;position:relative}
   .boxic.s1{animation:wob .5s ease-in-out infinite}
-  .boxic.s2{animation:shake .12s linear infinite;filter:drop-shadow(0 0 18px var(--glow)) drop-shadow(0 0 30px var(--glow))}
+  .boxic.s2{animation:shake .12s linear infinite;filter:drop-shadow(0 0 18px var(--glow)) drop-shadow(0 0 30px var(--glow)) drop-shadow(0 0 30px var(--glow))}
+  .boxic.s3.rainbow{animation:shake .07s linear infinite;filter:brightness(1.15)}
+  .boxic.s3.rainbow::before{content:"";position:absolute;inset:-34px;border-radius:50%;z-index:-1;background:conic-gradient(#ef4444,#f97316,#facc15,#22c55e,#06b6d4,#3b82f6,#a855f7,#ec4899,#ef4444);filter:blur(22px);animation:spin .9s linear infinite}
   .boxic.s3{animation:shake .07s linear infinite;transform-origin:center;filter:drop-shadow(0 0 30px var(--glow)) drop-shadow(0 0 60px var(--glow)) brightness(1.3);font-size:130px}
   .boxtxt{font-weight:800;font-size:22px;margin-top:10px;color:var(--glow)}
   .boxopen .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .2s}
@@ -1704,24 +1706,26 @@ function market(){
 }
 const RAR_GLOW={Common:"#9ca3af",Uncommon:"#2a9d8f",Rare:"#3b82f6",Epic:"#a855f7",Legendary:"#f77f00",Chroma:"#f0abfc",Unique:"#facc15",Mystical:"#a855f7"};
 let BOXT=[];
+// The box climbs through the colors and stops at what you pulled:
+// none (Common) → green (Uncommon) → blue (Rare) → purple (Epic) → orange (Legendary) → rainbow (Chroma).
+// A Unique sneaks out looking exactly like a Common.
+const GLOW_STEPS=[["Common","transparent"],["Uncommon","#22c55e"],["Rare","#3b82f6"],["Epic","#a855f7"],["Legendary","#f97316"],["Chroma","rainbow"]];
 function openBoxAnim(b,got,done){
   BOXT.forEach(clearTimeout); BOXT=[];
-  const rar=R[got][1], big=["Legendary","Chroma","Unique","Mystical"].includes(rar), glow=RAR_GLOW[rar]||"#fff";
-  let finished=false; const fin=()=>{ if(finished) return; finished=true; BOXT.forEach(clearTimeout); BOXT=[]; Music.sfx(big?"shine":"whoosh"); done(); };
-  showModal(`<div class="boxopen" onclick="BOXSKIP()" style="--glow:${glow}"><div class="boxic s1" id="boxic">${b.ic}</div><div class="boxtxt" id="boxtxt">Opening…</div><div class="flash" id="boxflash"></div></div><p class="muted small">tap to skip</p>`);
+  const rar=R[got][1], stop=Math.max(0,GLOW_STEPS.findIndex(x=>x[0]===rar)), STEP=420;
+  let finished=false; const fin=()=>{ if(finished) return; finished=true; BOXT.forEach(clearTimeout); BOXT=[]; Music.sfx(stop>=4?"shine":"whoosh"); done(); };
+  showModal(`<div class="boxopen" onclick="BOXSKIP()"><div class="boxic s1" id="boxic">${b.ic}</div><div class="boxtxt" id="boxtxt">Opening…</div><div class="flash" id="boxflash"></div></div><p class="muted small">tap to skip</p>`);
   window.BOXSKIP=fin;
   const st=(ms,f)=>BOXT.push(setTimeout(f,ms)), el=id=>document.getElementById(id);
-  [0,250,500].forEach(t=>st(t,()=>Music.sfx("tick")));
-  st(700,()=>{ const e=el("boxic"); if(e) e.className="boxic s2"; });
-  [750,900,1050,1200].forEach(t=>st(t,()=>Music.sfx("tick")));
-  if(big){
-    st(1400,()=>{ const e=el("boxic"), t=el("boxtxt"); if(e) e.className="boxic s3"; if(t) t.textContent="!!!"; Music.sfx("riser"); });
-    st(2700,()=>{ const f=el("boxflash"); if(f) f.classList.add("on"); });
-    st(2950,fin);
-  } else {
-    st(1350,()=>{ const f=el("boxflash"); if(f) f.classList.add("on"); });
-    st(1550,fin);
-  }
+  const setGlow=(i)=>{ const e=el("boxic"), t=el("boxtxt"), c=GLOW_STEPS[i][1]; if(!e) return;
+    e.className="boxic "+(i===0?"s1":c==="rainbow"?"s3 rainbow":i>=4?"s3":"s2"); e.style.setProperty("--glow",c==="rainbow"?"#f0abfc":c);
+    if(t){ t.textContent=i===0?"Opening…":"!".repeat(Math.min(i,3)); t.style.color=c==="rainbow"?"#c026d3":c==="transparent"?"":c; }
+    Music.sfx("tick"); };
+  setGlow(0);
+  for(let i=1;i<=stop;i++) st(400+i*STEP,()=>setGlow(i));
+  const end=400+stop*STEP+(stop>=4?700:450);
+  st(end-200,()=>{ const f=el("boxflash"); if(f) f.classList.add("on"); });
+  st(end,fin);
 }
 function reveal(name,isNew,extraBtns){
   const rar=R[name][1];
