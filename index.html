@@ -314,6 +314,24 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   .qrbox{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:#fff;border:2px solid var(--line);border-radius:16px;padding:12px;margin-top:10px}
   .qrbox canvas{image-rendering:pixelated;width:180px;height:180px}.qrlink{word-break:break-all;color:#7a6a6c}
   .giftrow{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.giftrow.off{opacity:.55}
+  .cmwrap.small .cmboard{width:min(300px,72vw)}
+  .cmboard .wp{font-size:min(40px,8.5vw);line-height:1;color:#fff;text-shadow:0 0 2px #000,0 0 2px #000,0 2px 0 #000,0 0 6px rgba(0,0,0,.6)}
+  .cmboard .sq{position:relative}
+  .cmboard .bp{display:flex;width:90%;height:90%;align-items:center;justify-content:center}.cmboard .bp svg{width:100%;height:100%}
+  .cmboard .bp.gold{filter:drop-shadow(0 0 6px #facc15) drop-shadow(0 0 10px #f59e0b) sepia(.6) saturate(2.2) hue-rotate(-10deg)}
+  .cmboard .stunfx,.cmboard .rdy{position:absolute;right:1px;top:0;font-style:normal;font-size:14px}
+  .cmboard .cap{cursor:pointer;box-shadow:inset 0 0 0 4px #ef4444}
+  .cmboard .abil{cursor:pointer;box-shadow:inset 0 0 0 4px #a855f7;animation:pulse 1s infinite}
+  .cmboard .back{box-shadow:inset 0 0 0 3px #22c55e}
+  .cmboard .last{box-shadow:inset 0 0 0 3px rgba(250,204,21,.9)}
+  @keyframes pulse{50%{filter:brightness(1.25)}}
+  .cmpanel{max-width:640px;margin:8px auto;background:#fff;border:2px solid var(--line);border-radius:14px;padding:10px 14px;text-align:center}
+  .cmpanel p{margin:4px 0}
+  .goldtag{background:#facc15;color:#5a3b00;font-weight:800;font-size:12px;border-radius:999px;padding:2px 8px}
+  .cmshop{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;max-width:820px;margin:8px auto}
+  .cmbuy{font:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border:2px solid var(--line);border-radius:14px;background:#fff;cursor:pointer}
+  .cmbuy b{font-size:13px}.cmbuy span{font-size:12px;font-weight:700;color:#b45309}
+  .cmbuy.on{border-color:#22c55e;box-shadow:0 0 0 3px #bbf7d0}.cmbuy:disabled{opacity:.4;cursor:not-allowed}
   .tabs{display:flex;background:var(--cream);border-radius:12px;padding:4px}
   .tabs button{flex:1;font:inherit;font-weight:600;border:none;background:none;padding:9px;border-radius:9px;cursor:pointer;color:#7a6a6c}
   .subtabs{max-width:460px;margin:0 auto 16px}
@@ -1406,7 +1424,7 @@ function renderSets(){
 const MODES=[
   {id:"battle",name:"Rook Battles",ic:"⚔️",desc:"Start as a Common. Punch, rest or dodge your way up to the Chroma!"},
   {id:"quest",name:"Castle Raid",ic:"🏰",desc:"Open chests: double, steal, swap, raid… or lose it all!"},
-  {id:"checkmate",name:"Checkmate",ic:"♜",desc:"Answer right to move your Rooks. Trap the King!"},
+  {id:"checkmate",name:"Checkmate",ic:"♜",desc:"Earn Rook tokens, buy Rooks with powers, and checkmate a whole white chess army!"},
   {id:"classic",name:"Classic",ic:"⚡",desc:"Faster answers = more points. Top the leaderboard."},
   {id:"race",name:"Rook Race",ic:"🏁",desc:"Right answers move your Rook. First to the flag wins!"},
   {id:"speed",name:"Speed Run",ic:"⏱️",desc:"60 seconds. Answer as many as you can. Build streaks!"},
@@ -1645,106 +1663,254 @@ function battleEnd(won){
 }
 
 // ====================================================================
-//  CHECKMATE — answer right to move a Rook. Trap the white King!
+//  CHECKMATE — Peel's rules
+//   • Every round: keep answering until you get 3 right (each wrong answer = White gets a free move).
+//   • 3 right → +50 Rook tokens. Buy Rooks (they appear on your back row), then do ONE thing:
+//     move a piece OR use an ability. Then White moves.
+//   • White has a full chess army. Checkmate the white King to win!
 // ====================================================================
-const CM_N=8;
-const cmKey=(r,c)=>r*CM_N+c, inB=(r,c)=>r>=0&&r<CM_N&&c>=0&&c<CM_N;
-function cmOcc(st,skip){ const o={}; st.rooks.forEach((p,i)=>{ if(i!==skip) o[cmKey(p[0],p[1])]="R"+i; }); if(skip!=="K") o[cmKey(st.k[0],st.k[1])]="K"; return o; }
-// squares the rooks attack (skipKing: let lines pass through the King's square, so he can't hide "behind" himself)
-function cmAttacked(st,skipKing,skipRook){
-  const occ=cmOcc(st,skipKing?"K":undefined); if(skipRook!==undefined) delete occ[cmKey(st.rooks[skipRook][0],st.rooks[skipRook][1])];
-  const att=new Set();
-  st.rooks.forEach((p,i)=>{ if(i===skipRook) return;
-    for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){ let r=p[0]+dr,c=p[1]+dc; while(inB(r,c)){ att.add(cmKey(r,c)); if(occ[cmKey(r,c)]) break; r+=dr; c+=dc; } } });
-  return att;
+const CM_N=8, CM_PER_ROUND=50;
+const CM_SHOP=[
+  {t:"Pebble",price:50,ab:"Moves like a normal chess rook. You start with one."},
+  {t:"Lighthouse",price:100,ab:"💡 Stun one white piece within 5 squares (diagonals count) so it can't move for a round. Every 5 rounds."},
+  {t:"Nebula",price:150,ab:"✨ Send a piece within 3 squares of her to ANY empty square. Every 5 rounds."},
+  {t:"Goldie",price:200,ab:"🐠 Turn one of your pieces gold: it moves like a queen for 5 rounds. Every 10 rounds."},
+  {t:"Tiger King",price:250,ab:"🐯 Only moves by leaping anywhere on the board to take a white piece (not the King)."},
+  {t:"Prism Rook",price:300,ab:"💎 Stun EVERY white piece within 5 squares. Every 5 rounds."},
+  {t:"Checkmate",price:1000,ab:"💠 Appears in the middle and can't move. If it's next to the King and no other white piece can take it — instant checkmate! If it's taken, it's gone for good."},
+];
+const CM_ABIL={Lighthouse:{cd:5,range:5},Nebula:{cd:5,range:3},Goldie:{cd:10,len:5},"Prism Rook":{cd:5,range:5}};
+const W_ICON={K:"♚",Q:"♛",R:"♜",B:"♝",N:"♞",P:"♟"}, W_VAL={K:0,Q:9,R:5,B:3,N:3,P:1}, W_NAME={K:"King",Q:"Queen",R:"Rook",B:"Bishop",N:"Knight",P:"Pawn"};
+const cmKey=(r,c)=>r*CM_N+c, inB=(r,c)=>r>=0&&r<CM_N&&c>=0&&c<CM_N, cheb=(a,b)=>Math.max(Math.abs(a.r-b.r),Math.abs(a.c-b.c));
+const ORTH=[[1,0],[-1,0],[0,1],[0,-1]], DIAG=[[1,1],[1,-1],[-1,1],[-1,-1]];
+function cmInit(){
+  const pcs=[]; let id=0; const add=(side,t,r,c)=>pcs.push({id:++id,side,t,r,c});
+  "RNBQKBNR".split("").forEach((t,c)=>add("w",t,7,c)); for(let c=0;c<8;c++) add("w","P",6,c);
+  add("b","Pebble",0,rand(0,7));
+  return {cm:{pcs,nid:id,round:1,right:0,tokens:0,taken:0,mateGone:false,phase:"q",sel:null,mode:null},moves:0,mated:false};
 }
-const cmInCheck=st=>cmAttacked(st,false).has(cmKey(st.k[0],st.k[1]));
-function cmKingMoves(st){
-  const out=[], att=cmAttacked(st,true);
-  for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ if(!dr&&!dc) continue; const r=st.k[0]+dr,c=st.k[1]+dc; if(!inB(r,c)) continue;
-    const ri=st.rooks.findIndex(p=>p[0]===r&&p[1]===c);
-    if(ri>=0){ const st2={k:[r,c],rooks:st.rooks}; if(!cmAttacked(st2,true,ri).has(cmKey(r,c))) out.push({r,c,take:ri}); }   // can grab an unprotected Rook
-    else if(!att.has(cmKey(r,c))) out.push({r,c}); }
+const C=()=>G.cm;
+const pieceAt=(r,c,st)=>(st||C()).pcs.find(p=>p.r===r&&p.c===c);
+const isGold=p=>p.side==="b"&&(p.goldUntil||0)>C().round;
+const stunned=p=>p.side==="w"&&p.stun;
+function lineDirs(p){ if(p.side==="b") return p.t==="Tiger King"||p.t==="Checkmate"?[]:isGold(p)?ORTH.concat(DIAG):ORTH; return p.t==="R"?ORTH:p.t==="B"?DIAG:p.t==="Q"?ORTH.concat(DIAG):[]; }
+// squares a side attacks (skip = ignore that piece, e.g. a moving king)
+function attacks(st,side,opt){
+  opt=opt||{}; const set=new Set(), occ=k=>st.pcs.some(p=>p!==opt.ignore&&cmKey(p.r,p.c)===k);
+  st.pcs.forEach(p=>{ if(p.side!==side||p===opt.ignore||(opt.noKing&&p.t==="K")||(opt.noStunned&&stunned(p))) return;
+    lineDirs(p).forEach(([dr,dc])=>{ let r=p.r+dr,c=p.c+dc; while(inB(r,c)){ set.add(cmKey(r,c)); if(occ(cmKey(r,c))) break; r+=dr; c+=dc; } });
+    if(side==="w"){
+      if(p.t==="N") [[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]].forEach(([a,b])=>inB(p.r+a,p.c+b)&&set.add(cmKey(p.r+a,p.c+b)));
+      if(p.t==="K") for(let a=-1;a<=1;a++) for(let b=-1;b<=1;b++) if((a||b)&&inB(p.r+a,p.c+b)) set.add(cmKey(p.r+a,p.c+b));
+      if(p.t==="P") [-1,1].forEach(b=>inB(p.r-1,p.c+b)&&set.add(cmKey(p.r-1,p.c+b)));
+    } });
+  return set;
+}
+const wKing=st=>(st||C()).pcs.find(p=>p.side==="w"&&p.t==="K");
+const kingInCheck=st=>{ st=st||C(); const k=wKing(st); return !!k&&attacks(st,"b").has(cmKey(k.r,k.c)); };
+// ---- white's legal moves ----
+function wPseudo(st,p){
+  if(stunned(p)) return [];
+  const out=[], at=(r,c)=>st.pcs.find(q=>q.r===r&&q.c===c), push=(r,c)=>{ if(!inB(r,c)) return; const q=at(r,c); if(!q) out.push({p,r,c}); else if(q.side==="b") out.push({p,r,c,take:q}); };
+  if(p.t==="P"){ if(!at(p.r-1,p.c)&&inB(p.r-1,p.c)){ out.push({p,r:p.r-1,c:p.c}); if(p.r===6&&!at(p.r-2,p.c)) out.push({p,r:p.r-2,c:p.c}); }
+    [-1,1].forEach(b=>{ const q=at(p.r-1,p.c+b); if(q&&q.side==="b") out.push({p,r:p.r-1,c:p.c+b,take:q}); }); }
+  else if(p.t==="N") [[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]].forEach(([a,b])=>push(p.r+a,p.c+b));
+  else if(p.t==="K"){ for(let a=-1;a<=1;a++) for(let b=-1;b<=1;b++) if(a||b) push(p.r+a,p.c+b); }
+  else lineDirs(p).forEach(([dr,dc])=>{ let r=p.r+dr,c=p.c+dc; while(inB(r,c)){ const q=at(r,c); if(q){ if(q.side==="b") out.push({p,r,c,take:q}); break; } out.push({p,r,c}); r+=dr; c+=dc; } });
   return out;
 }
-function cmRookMoves(st,i){
-  const occ=cmOcc(st), p=st.rooks[i], out=[];
-  for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){ let r=p[0]+dr,c=p[1]+dc; while(inB(r,c)&&!occ[cmKey(r,c)]){ out.push([r,c]); r+=dr; c+=dc; } }
-  return out;
+function simulate(st,m){ // returns a copy of the board after white move m
+  const pcs=st.pcs.filter(q=>q!==m.take).map(q=>q===m.p?{...q,r:m.r,c:m.c,t:q.t==="P"&&m.r===0?"Q":q.t}:q);
+  return {...st,pcs};
 }
-function cmRoom(st){ // how many squares the King can still roam (smaller = more trapped)
-  const att=cmAttacked(st,true), seen=new Set([cmKey(st.k[0],st.k[1])]), q=[st.k];
-  while(q.length){ const [r,c]=q.pop(); for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){ const a=r+dr,b=c+dc, k=cmKey(a,b); if(inB(a,b)&&!seen.has(k)&&!att.has(k)){ seen.add(k); q.push([a,b]); } } }
-  return seen.size;
+function wLegal(st){ st=st||C(); const out=[]; st.pcs.filter(p=>p.side==="w").forEach(p=>wPseudo(st,p).forEach(m=>{ if(!kingInCheck(simulate(st,m))) out.push(m); })); return out; }
+function mateRookWins(st){ // the Checkmate Rook is next to the King and no other white piece can take it
+  st=st||C(); const m=st.pcs.find(p=>p.side==="b"&&p.t==="Checkmate"), k=wKing(st);
+  return !!(m&&k&&cheb(m,k)===1&&!attacks(st,"w",{noKing:true,noStunned:true}).has(cmKey(m.r,m.c)));
 }
-function cmNewBoard(){
-  for(let t=0;t<500;t++){
-    const k=[rand(2,5),rand(2,5)], rooks=[[rand(0,7),rand(0,7)],[rand(0,7),rand(0,7)]], st={k,rooks};
-    const keys=new Set([cmKey(...k),cmKey(...rooks[0]),cmKey(...rooks[1])]); if(keys.size<3) continue;
-    if(rooks.some(p=>Math.abs(p[0]-k[0])<=2&&Math.abs(p[1]-k[1])<=2)) continue;
-    if(cmInCheck(st)||cmKingMoves(st).length<5) continue;
-    return st;
-  }
-  return {k:[3,4],rooks:[[7,0],[7,7]]};
-}
-function cmKingAI(st){
-  const ms=cmKingMoves(st); if(!ms.length) return null;
-  const take=ms.find(m=>m.take!==undefined); if(take) return take;
-  ms.forEach(m=>{ const st2={k:[m.r,m.c],rooks:st.rooks}; m.s=cmRoom(st2)*2+cmKingMoves(st2).length-(Math.abs(m.r-3.5)+Math.abs(m.c-3.5))*.5+Math.random()*1.5; });
+function bVal(p){ const s=CM_SHOP.find(x=>x.t===p.t); return s?s.price/40:1; }
+function whiteChoose(){
+  const st=C(), ms=wLegal(st); if(!ms.length) return null;
+  const bAtt=attacks(st,"b");
+  ms.forEach(m=>{ const after=simulate(st,m), att2=attacks(after,"b"), wDef=attacks(after,"w",{ignore:after.pcs.find(q=>q.r===m.r&&q.c===m.c)});
+    let s=Math.random()*1.2;
+    if(m.take) s+=bVal(m.take)*10+(m.take.t==="Checkmate"?200:0);
+    const v=W_VAL[m.p.t]||0, k=cmKey(m.r,m.c);
+    if(att2.has(k)&&m.p.t!=="K") s-=v*(wDef.has(k)?4:9);
+    if(bAtt.has(cmKey(m.p.r,m.p.c))&&!att2.has(k)) s+=v*7;
+    if(m.p.t==="P"){ s+=.4; if(m.r===0) s+=80; }
+    if(m.p.t==="K"){ s-=1.5; if(mateRookWins(after)) s-=1000; }
+    if(kingInCheck(after)) s-=50;
+    m.s=s; });
   return ms.sort((a,b)=>b.s-a.s)[0];
 }
-function startCheckmate(){ Object.assign(G,{cm:cmNewBoard(),moves:0,boards:1,mated:false}); checkmateNext(); }
-function cmProgress(){ if(G.mated) return 100; return Math.max(0,Math.min(95,Math.round((1-(cmRoom(G.cm)-1)/40)*95))); }
-function cmBoardHTML(sel,targets){
-  const st=G.cm, ts=new Set((targets||[]).map(t=>cmKey(t[0],t[1]))), check=cmInCheck(st);
-  let h=`<div class="cmboard ${sel!=null||targets?"live":""}">`;
-  for(let r=0;r<CM_N;r++) for(let c=0;c<CM_N;c++){ const k=cmKey(r,c), ri=st.rooks.findIndex(p=>p[0]===r&&p[1]===c), isK=st.k[0]===r&&st.k[1]===c;
-    const cls=((r+c)%2?"dk":"lt")+(ts.has(k)?" tgt":"")+(ri===sel&&ri>=0?" sel":"")+(isK&&check?" chk":"");
-    const click=ts.has(k)?`cmMove(${r},${c})`:ri>=0&&targets!==undefined?`cmSelect(${ri})`:"";
-    h+=`<div class="sq ${cls}" ${click?`onclick="${click}"`:""}>${ri>=0?rookSVG(S.equipped,40):isK?`<span class="wk">♔</span>`:""}</div>`; }
-  return h+"</div>";
+function cmTakenMsg(q){ return q.t==="Checkmate"?"💔 White took your Checkmate Rook — it can't be bought again!":`😱 White took your ${q.t}!`; }
+function whiteTurn(why,cb){
+  const st=C();
+  if(!wLegal(st).length){
+    if(kingInCheck(st)) return cmWin();
+    toast("White is stuck but not in check — keep going!"); return setTimeout(cb,500);
+  }
+  const m=whiteChoose(); let msg=`♔ White moves the ${W_NAME[m.p.t]}`;
+  if(m.take){ st.pcs=st.pcs.filter(q=>q!==m.take); if(m.take.t==="Checkmate") st.mateGone=true; msg=cmTakenMsg(m.take); Music.sfx("bad"); }
+  m.p.r=m.r; m.p.c=m.c; if(m.p.t==="P"&&m.r===0){ m.p.t="Q"; msg+=" — a Pawn became a Queen!"; }
+  st.last=[m.r,m.c];
+  if(G.live) pushLive();
+  if(mateRookWins()) return cmWin();
+  cmRender(`${why?why+" ":""}${msg}`,false);
+  setTimeout(cb,900);
 }
-function cmTop(){ return G.live?liveHud():hud(`♔ Board ${G.boards}`,`Moves ${G.moves}`); }
+// ---- your pieces ----
+function bMoves(p){
+  const st=C(), out=[], at=(r,c)=>pieceAt(r,c);
+  if(p.t==="Checkmate") return out;
+  if(p.t==="Tiger King") return st.pcs.filter(q=>q.side==="w"&&q.t!=="K").map(q=>[q.r,q.c]);
+  lineDirs(p).forEach(([dr,dc])=>{ let r=p.r+dr,c=p.c+dc; while(inB(r,c)){ const q=at(r,c); if(q){ if(q.side==="w"&&q.t!=="K") out.push([r,c]); break; } out.push([r,c]); r+=dr; c+=dc; } });
+  return out;
+}
+const abilReady=p=>CM_ABIL[p.t]&&(p.ready||0)<=C().round;
+function abilTargets(p){
+  const st=C(), A=CM_ABIL[p.t];
+  if(p.t==="Lighthouse") return st.pcs.filter(q=>q.side==="w"&&cheb(q,p)<=A.range&&!q.stun);
+  if(p.t==="Nebula") return st.pcs.filter(q=>q!==p&&q.t!=="Checkmate"&&cheb(q,p)<=A.range);
+  if(p.t==="Goldie") return st.pcs.filter(q=>q.side==="b"&&q.t!=="Checkmate"&&!isGold(q));
+  return [];
+}
+// ---- the round ----
+function startCheckmate(){ Object.assign(G,cmInit()); cmIntro(); }
+function cmIntro(){
+  showModal(`<h2>♜ Checkmate</h2><p>Beat a whole white chess army with your Rooks!</p>
+    <ol style="text-align:left;line-height:1.6"><li>Each round, get <b>3 questions right</b>. Every wrong answer gives White a free move!</li>
+    <li>3 right = <b>+${CM_PER_ROUND} Rook tokens</b>. Buy Rooks — they appear on your back row.</li>
+    <li>Then <b>move one piece or use one ability</b>. White moves after you.</li>
+    <li><b>Checkmate the white King</b> to win.</li></ol>
+    <button class="btn red big" onclick="closeModal();checkmateNext()">Let's go ♜</button>`);
+}
+function cmProgress(){ if(G.mated) return 100; const st=C(); return Math.max(0,Math.min(95,Math.round(st.taken/39*70+(kingInCheck(st)?15:0)))); }
+function cmTop(){
+  const st=C(), info=`♟ Round ${st.round} · 🪙 ${st.tokens} · ✅ ${Math.min(st.right,3)}/3`;
+  return G.live?liveHud():hud(info,`♚ ${st.taken} pts taken`);
+}
 function checkmateNext(){
   if(!G||G.mode!=="checkmate"||G.over) return;
-  if(G.mated) return G.live?(pushLive(),app.innerHTML=`<div class="card fade" style="text-align:center"><h1>♜ CHECKMATE!</h1><div class="bob">${rookSVG(S.equipped,120)}</div><p>You trapped the King first! Waiting for results…</p></div>`):checkmateEnd();
-  ask(`${cmTop()}<div class="cmwrap">${cmBoardHTML()}</div><div class="feedback small">${cmInCheck(G.cm)?"⚠️ The King is in CHECK! ":""}Answer right to move a Rook</div>`,20,500,right=>{
+  if(G.mated) return G.live?(pushLive(),app.innerHTML=`<div class="card fade" style="text-align:center"><h1>♜ CHECKMATE!</h1><div class="bob">${rookSVG(S.equipped,120)}</div><p>You checkmated the King first! Waiting for results…</p></div>`):checkmateEnd();
+  const st=C(); st.phase="q"; st.mode=null; st.sel=null;
+  if(st.right>=3) return cmActPhase();
+  ask(`${cmTop()}${G.live?`<div class="feedback small">♟ Round ${st.round} · 🪙 ${st.tokens} Rook tokens · ✅ ${st.right}/3 right</div>`:""}<div class="cmwrap small">${cmBoardHTML()}</div>
+    <div class="feedback small">${kingInCheck(st)?"⚠️ The King is in CHECK! ":""}Get ${3-st.right} more right to earn ${CM_PER_ROUND} tokens and make your move</div>`,20,500,right=>{
     if(!G||G.over) return; G.total++;
-    if(right){ G.correct++; G.cmSel=null; cmSelect(null); }
-    else { toast("❌ Wrong — the King moves for free!"); cmKingTurn(); }
+    if(right){ G.correct++; st.right++;
+      if(st.right>=3){ st.tokens+=CM_PER_ROUND; Music.sfx("good"); toast(`+${CM_PER_ROUND} Rook tokens! 🪙 ${st.tokens}`); return cmActPhase(); }
+      checkmateNext(); }
+    else whiteTurn("❌ Wrong — White gets a free move!",checkmateNext);
   });
 }
-function cmSelect(i){
-  if(!G||G.over) return; G.cmSel=i; const targets=i==null?[]:cmRookMoves(G.cm,i);
-  app.innerHTML=`<div class="fade">${cmTop()}<div class="feedback">${i==null?"✅ Tap one of your Rooks":"Tap a glowing square to move there"}</div><div class="cmwrap">${cmBoardHTML(i,targets)}</div>
-    <p class="muted small" style="text-align:center">Rooks slide in straight lines. Trap the ♔ King so he's in check and can't escape. Careful — he can grab a Rook that isn't protected!</p></div>`;
-}
-function cmMove(r,c){
-  if(!G||G.cmSel==null) return; const i=G.cmSel;
-  if(!cmRookMoves(G.cm,i).some(t=>t[0]===r&&t[1]===c)) return;
-  G.cm.rooks[i]=[r,c]; G.moves++; G.cmSel=null; Music.sfx("good");
-  if(!cmKingMoves(G.cm).length){
-    if(cmInCheck(G.cm)){ G.mated=true; Music.sfx("win"); confetti(); if(G.live) pushLive();
-      app.innerHTML=`<div class="fade">${cmTop()}<div class="feedback">♜ CHECKMATE! ♜</div><div class="cmwrap">${cmBoardHTML()}</div></div>`; return setTimeout(checkmateNext,1800); }
-    toast("🤝 Stalemate — the King can't move but isn't in check. New board!"); G.cm=cmNewBoard(); G.boards++; if(G.live) pushLive(); return setTimeout(checkmateNext,900);
+function cmActPhase(){ const st=C(); st.phase="act"; st.mode=null; st.sel=null; cmRender(); }
+function cmRender(note,interactive){
+  if(!G||G.over) return; const st=C(); interactive=interactive!==false&&st.phase==="act";
+  let targets=[], tgtPieces=[];
+  const selP=st.pcs.find(p=>p.id===st.sel);
+  if(interactive){
+    if(st.mode&&st.mode.startsWith("buy:")) targets=st.mode==="buy:Checkmate"?[]:[0,1,2,3,4,5,6,7].filter(c=>!pieceAt(0,c)).map(c=>[0,c]);
+    else if(st.mode==="ability"&&selP) tgtPieces=abilTargets(selP).map(q=>[q.r,q.c]);
+    else if(st.mode==="nebula2"){ for(let r=0;r<8;r++) for(let c=0;c<8;c++) if(!pieceAt(r,c)) targets.push([r,c]); }
+    else if(selP) targets=bMoves(selP);
   }
-  cmKingTurn();
+  const shop=interactive?`<div class="cmshop">${CM_SHOP.map(s=>{ const gone=s.t==="Checkmate"&&(st.mateGone||st.pcs.some(p=>p.t==="Checkmate"));
+      const can=!gone&&st.tokens>=s.price;
+      return `<button class="cmbuy ${st.mode==="buy:"+s.t?"on":""}" ${can?"":"disabled"} onclick="cmBuy('${s.t}')" title="${esc(s.ab)}">${rookSVG(s.t,40)}<b>${esc(s.t)}</b><span>${gone&&st.mateGone?"gone":"🪙 "+s.price}</span></button>`; }).join("")}</div>`:"";
+  let panel="";
+  if(interactive){
+    if(st.mode&&st.mode.startsWith("buy:")) panel=`<p><b>Buying ${esc(st.mode.slice(4))}.</b> Tap a glowing square on your back row. <button class="btn small" onclick="cmCancel()">Cancel</button></p>`;
+    else if(st.mode==="ability") panel=`<p><b>${esc(selP.t)}:</b> tap a glowing piece. <button class="btn small" onclick="cmCancel()">Cancel</button></p>`;
+    else if(st.mode==="nebula2") panel=`<p><b>Nebula:</b> now tap ANY empty square to send it there. <button class="btn small" onclick="cmCancel()">Cancel</button></p>`;
+    else if(selP){ const info=CM_SHOP.find(s=>s.t===selP.t), A=CM_ABIL[selP.t];
+      panel=`<p><b>${esc(selP.t)}</b>${isGold(selP)?` <span class="goldtag">GOLD · queen moves for ${selP.goldUntil-st.round} more round(s)</span>`:""}<br><span class="small muted">${esc(info?info.ab:"")}</span></p>
+      ${A?(abilReady(selP)?(selP.t==="Prism Rook"?`<button class="btn red small" onclick="cmPrism()">💎 Stun everything within 5</button>`:`<button class="btn red small" onclick="cmAbility()">✨ Use ability</button>`):`<span class="small muted">Ability ready in ${(selP.ready||0)-st.round} round(s)</span>`):""}
+      ${targets.length?`<span class="small muted"> · or tap a green square to move</span>`:selP.t==="Checkmate"?"":`<span class="small muted"> · no moves right now</span>`}`; }
+    else panel=`<p>✅ Your turn! Tap one of your Rooks to <b>move it or use its ability</b>, or buy a Rook below.</p>`;
+    panel+=`<div style="margin-top:6px"><button class="btn small" onclick="cmSkip()">Skip my move</button></div>`;
+  }
+  app.innerHTML=`<div class="fade">${cmTop()}${note?`<div class="feedback">${note}</div>`:""}${kingInCheck(st)?`<div class="feedback small">⚠️ The King is in CHECK!</div>`:""}
+    <div class="cmwrap">${cmBoardHTML(targets,tgtPieces,interactive)}</div>${interactive?`<div class="cmpanel">${panel}</div>${shop}`:""}</div>`;
 }
-function cmKingTurn(){
-  const m=cmKingAI(G.cm);
-  if(m){ G.cm.k=[m.r,m.c];
-    if(m.take!==undefined){ app.innerHTML=`<div class="fade">${cmTop()}<div class="feedback">😱 The King grabbed your Rook! New board…</div><div class="cmwrap">${cmBoardHTML()}</div></div>`;
-      G.cm=cmNewBoard(); G.boards++; if(G.live) pushLive(); return setTimeout(checkmateNext,1700); } }
+function cmBoardHTML(targets,tgtPieces,interactive){
+  const st=C(), ts=new Set((targets||[]).map(t=>cmKey(t[0],t[1]))), tp=new Set((tgtPieces||[]).map(t=>cmKey(t[0],t[1]))), k=wKing(st), chk=kingInCheck(st);
+  let h=`<div class="cmboard ${interactive?"live":""}">`;
+  for(let r=0;r<CM_N;r++) for(let c=0;c<CM_N;c++){ const key=cmKey(r,c), p=pieceAt(r,c);
+    const cls=((r+c)%2?"dk":"lt")+(ts.has(key)?(p?" cap":" tgt"):"")+(tp.has(key)?" abil":"")+(p&&p.id===st.sel?" sel":"")+(p&&p===k&&chk?" chk":"")+(r===0&&st.mode&&st.mode.startsWith("buy:")?" back":"")+(st.last&&st.last[0]===r&&st.last[1]===c?" last":"");
+    let inner="";
+    if(p&&p.side==="w") inner=`<span class="wp">${W_ICON[p.t]}</span>${p.stun?`<i class="stunfx">❄️</i>`:""}`;
+    else if(p) inner=`<span class="bp ${isGold(p)?"gold":""}">${rookSVG(p.t,40)}</span>${CM_ABIL[p.t]&&abilReady(p)?`<i class="rdy">✨</i>`:""}`;
+    h+=`<div class="sq ${cls}" ${interactive?`onclick="cmClick(${r},${c})"`:""}>${inner}</div>`; }
+  return h+"</div>";
+}
+function cmCancel(){ C().mode=null; cmRender(); }
+function cmBuy(t){
+  const st=C(), s=CM_SHOP.find(x=>x.t===t); if(!s||st.phase!=="act"||st.tokens<s.price) return;
+  if(t==="Checkmate"){
+    if(st.mateGone) return toast("The Checkmate Rook was taken — it can't be bought again.");
+    const k=wKing(), d=([r,c])=>k?Math.max(Math.abs(r-k.r),Math.abs(c-k.c)):0;
+    const spots=[[3,3],[3,4],[4,3],[4,4],[2,3],[2,4],[5,3],[5,4],[3,2],[3,5],[4,2],[4,5]].filter(([r,c])=>!pieceAt(r,c)).map((q,i)=>[q,i<4?0:1]).sort((a,b)=>a[1]-b[1]||d(a[0])-d(b[0])).map(x=>x[0]);
+    if(!spots.length) return toast("The middle of the board is full!");
+    const [r,c]=spots[0]; st.tokens-=s.price; st.pcs.push({id:++st.nid,side:"b",t,r,c}); Music.sfx("shine");
+    if(mateRookWins()) return cmWin();
+    return cmRender("💠 The Checkmate Rook lands in the middle of the board!");
+  }
+  if(![0,1,2,3,4,5,6,7].some(c=>!pieceAt(0,c))) return toast("Your back row is full!");
+  st.mode="buy:"+t; st.sel=null; cmRender();
+}
+function cmClick(r,c){
+  const st=C(); if(!G||G.over||st.phase!=="act") return; const p=pieceAt(r,c);
+  if(st.mode&&st.mode.startsWith("buy:")){
+    if(r!==0||p) return; const t=st.mode.slice(4), s=CM_SHOP.find(x=>x.t===t);
+    st.tokens-=s.price; st.pcs.push({id:++st.nid,side:"b",t,r,c}); st.mode=null; Music.sfx("good"); return cmRender(`🛒 ${t} joined your team!`);
+  }
+  if(st.mode==="ability"){ const sp=st.pcs.find(q=>q.id===st.sel); if(!p||!abilTargets(sp).includes(p)) return;
+    const A=CM_ABIL[sp.t];
+    if(sp.t==="Lighthouse"){ p.stun=st.round; sp.ready=st.round+A.cd; Music.sfx("tick"); return cmDone(`💡 Lighthouse stunned the ${W_NAME[p.t]}! ❄️`); }
+    if(sp.t==="Goldie"){ p.goldUntil=st.round+1+A.len; sp.ready=st.round+A.cd; Music.sfx("shine"); return cmDone(`🐠 ${p.t} turned GOLD — queen moves for 5 rounds!`); }
+    if(sp.t==="Nebula"){ st.mode="nebula2"; st.nebTarget=p.id; return cmRender(); }
+  }
+  if(st.mode==="nebula2"){ if(p) return; const sp=st.pcs.find(q=>q.id===st.sel), tgt=st.pcs.find(q=>q.id===st.nebTarget); if(!tgt) return;
+    tgt.r=r; tgt.c=c; sp.ready=st.round+CM_ABIL.Nebula.cd; Music.sfx("whoosh");
+    return cmDone(`✨ Nebula sent the ${tgt.side==="w"?W_NAME[tgt.t]:tgt.t} flying!`); }
+  const sel=st.pcs.find(q=>q.id===st.sel);
+  if(sel&&bMoves(sel).some(([a,b])=>a===r&&b===c)){
+    let note=`♜ ${sel.t} moves`;
+    if(p&&p.side==="w"){ st.pcs=st.pcs.filter(q=>q!==p); st.taken+=W_VAL[p.t]; note=`💥 ${sel.t} took White's ${W_NAME[p.t]}!`; Music.sfx("punch"); }
+    sel.r=r; sel.c=c; return cmDone(note);
+  }
+  if(p&&p.side==="b"){ st.sel=p.id; st.mode=null; return cmRender(); }
+  st.sel=null; cmRender();
+}
+function cmAbility(){ const st=C(); const sp=st.pcs.find(q=>q.id===st.sel); if(!sp||!abilReady(sp)) return;
+  if(!abilTargets(sp).length) return toast(sp.t==="Lighthouse"?"No white piece within 5 squares.":"Nothing in range."); st.mode="ability"; cmRender(); }
+function cmPrism(){ const st=C(), sp=st.pcs.find(q=>q.id===st.sel); if(!sp||!abilReady(sp)) return;
+  const hit=st.pcs.filter(q=>q.side==="w"&&cheb(q,sp)<=CM_ABIL["Prism Rook"].range); hit.forEach(q=>q.stun=st.round);
+  sp.ready=st.round+CM_ABIL["Prism Rook"].cd; Music.sfx("shine"); cmDone(`💎 Prism Rook stunned ${hit.length} white piece${hit.length===1?"":"s"}! ❄️`); }
+function cmSkip(){ cmDone("⏭️ You skipped your move."); }
+function cmDone(note){
+  const st=C(); G.moves++; st.phase="white"; st.mode=null; st.sel=null;
+  st.pcs.forEach(q=>{ if(q.stun&&q.stun<st.round) q.stun=0; });           // last round's stuns wear off now
   if(G.live) pushLive();
-  app.innerHTML=`<div class="fade">${cmTop()}<div class="feedback small">♔ The King moves…</div><div class="cmwrap">${cmBoardHTML()}</div></div>`;
-  setTimeout(checkmateNext,700);
+  if(mateRookWins()) return cmWin();
+  if(!wLegal(st).length&&kingInCheck(st)) return cmWin();
+  cmRender(note,false);
+  setTimeout(()=>whiteTurn("",()=>{ if(!G||G.over||G.mated) return; st.round++; st.right=0; checkmateNext(); }),900);
+}
+function cmWin(){
+  G.mated=true; Music.sfx("win"); confetti(); if(G.live) pushLive();
+  const st=C(); st.phase="done";
+  app.innerHTML=`<div class="fade">${cmTop()}<div class="feedback">♜ CHECKMATE! ♜</div><div class="cmwrap">${cmBoardHTML()}</div></div>`;
+  setTimeout(checkmateNext,1800);
 }
 function checkmateEnd(){
   stopTimers(); G.over=true; G.locked=true; Music.stop();
   const earned=reward(G.correct,G.set), idx=allSets().findIndex(s=>s.title===G.set.title);
   addStat("games"); addStat("correct",G.correct); addStat("wins"); S.tokens+=earned; save();
   app.innerHTML=`<div class="card fade" style="text-align:center"><h1>♜ Checkmate!</h1><div class="bob">${rookSVG(S.equipped,120)}</div>
-    <p>You trapped the King in ${G.moves} moves · ${G.correct} right</p><h2 class="pop">+${earned} 🪙 tokens</h2>
+    <p>You beat the white army in ${C().round} rounds · took ${C().taken} points of pieces · ${G.correct} right</p><h2 class="pop">+${earned} 🪙 tokens</h2>
     <div class="row"><button class="btn red big" onclick="startGame(${idx},'checkmate')">Play Again</button><button class="btn big" onclick="go('play')">New Set</button></div></div>`;
 }
 
@@ -2209,7 +2375,7 @@ const LIVE_MODES=[
   {id:"classic",name:"Classic",ic:"⚡",desc:"Faster answers = more points."},
   {id:"quest",name:"Castle Raid",ic:"🏰",desc:"Open chests: steal, swap, raid your classmates… or get a shield!"},
   {id:"battle",name:"Rook Battles",ic:"⚔️",desc:"Max 10 players. Fight up from Common to Chroma — first to the Chroma wins, or furthest when time's up."},
-  {id:"checkmate",name:"Checkmate",ic:"♜",desc:"Right answers move your Rooks. First to checkmate the King wins, or most-trapped King when time's up."},
+  {id:"checkmate",name:"Checkmate",ic:"♜",desc:"Earn tokens, buy power Rooks, beat the white army. First to checkmate wins, or most pieces taken when time's up."},
   {id:"race",name:"Rook Race",ic:"🏁",desc:"First Rook to the flag wins. Game ends when someone finishes."},
 ];
 function leaveLive(){ if(!LIVE) return; LIVE.unsubs.forEach(f=>{try{f()}catch(e){}}); clearInterval(LIVE.clock); LIVE=null; }
@@ -2249,7 +2415,7 @@ const POSMODES=["race","battle","checkmate"];
 const liveKey=g=>g&&POSMODES.includes(g.mode)?"pos":"score";
 const sortP=(ps,g)=>[...ps].sort((a,b)=>(b[liveKey(g)]||0)-(a[liveKey(g)]||0)||(b.correct||0)-(a.correct||0));
 const unitFor=g=>({race:"🏁",quest:"💰",battle:"⚔️",checkmate:"♜"})[g.mode]||"⚡";
-const fmtScore=(p,g)=>g.mode==="battle"?(p.pos>=100?"🌈 Champion":BAT_RARS[p.lvl||0]||"Common"):g.mode==="checkmate"?(p.pos>=100?"Checkmate!":Math.min(p.pos||0,100)+"% trapped"):g.mode==="race"?Math.min(p.pos||0,100)+"%":(p.score||0).toLocaleString();
+const fmtScore=(p,g)=>g.mode==="battle"?(p.pos>=100?"🌈 Champion":BAT_RARS[p.lvl||0]||"Common"):g.mode==="checkmate"?(p.pos>=100?"Checkmate!":Math.min(p.pos||0,100)+"%"):g.mode==="race"?Math.min(p.pos||0,100)+"%":(p.score||0).toLocaleString();
 function renderHost(){
   if(!LIVE||LIVE.role!=="host") return;
   const g=LIVE.game, ps=LIVE.players, code=LIVE.code;
@@ -2346,7 +2512,7 @@ function liveStart(){
   const g=LIVE.game; LIVE.started=true; Music.play("game");
   G={set:g.set,mode:g.mode,live:true,deck:[],n:0,gold:0,pts:0,pos:0,correct:0,total:0,streak:0,bots:[]};
   if(g.mode==="battle"){ const L=battleLadder(); Object.assign(G,{box:L.box,lad:L.lad,lvl:0,rounds:0,wins:0,kos:0,hp:BAT_HP.Common,ehp:BAT_HP.Uncommon}); toast(`⚔️ Your pack: ${boxLabel(L.box.name)} — you start as ${L.lad[0]}!`); }
-  if(g.mode==="checkmate") Object.assign(G,{cm:cmNewBoard(),moves:0,boards:1,mated:false});
+  if(g.mode==="checkmate"){ Object.assign(G,cmInit()); toast("♜ Get 3 right each round to earn Rook tokens, then make your move!"); }
   if(g.mode!=="race"){
     gTimer=setInterval(()=>{ if(!LIVE||!G) return; const el=document.getElementById("gclock"); if(el) el.textContent=clockText(LIVE.game.endsAt);
       if(LIVE.game.endsAt&&Date.now()>=LIVE.game.endsAt+1500&&!G.over){ G.over=true; timesUp(); } },400);
