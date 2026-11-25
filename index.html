@@ -1539,6 +1539,7 @@ function speedEnd(){
 // ====================================================================
 const BAT_RARS=["Common","Uncommon","Rare","Epic","Legendary","Chroma"];
 const BAT_HP={Common:30,Uncommon:40,Rare:50,Epic:60,Legendary:70,Chroma:80};
+const TELL_RIGHT={Common:.9,Uncommon:.8,Rare:.7,Epic:.6,Legendary:.5,Chroma:.4};   // how often the enemy's hint is true
 const BAT_Q=5, BAT_MOVE=3;                       // seconds to answer, seconds to pick a move
 const MOVES={P:{ic:"👊",n:"Punch"},R:{ic:"😴",n:"Rest"},D:{ic:"💨",n:"Dodge"},N:{ic:"😵",n:"Frozen"}};
 const TELLS={P:"👊 is winding up a punch…",R:"😴 looks tired…",D:"💨 is bouncing on his toes…"};
@@ -1582,9 +1583,12 @@ function battleNext(){
   if(!G||G.mode!=="battle"||G.over) return;
   if(G.lvl>=5) return battleChampion();
   G.foeMove=battleAI(G.ehp,BAT_HP[BAT_RARS[G.lvl+1]]);
-  G.tell=Math.random()<.75?G.foeMove:["P","R","D"][rand(0,2)];
-  if(G.tell==="R"&&G.ehp>=BAT_HP[BAT_RARS[G.lvl+1]]) G.tell=G.foeMove;   // he never "looks tired" at full health
-  ask(arena(`<div class="tell">${esc(batFoe())} ${TELLS[G.tell]}</div><div class="feedback small">⚔️ Answer before he strikes!</div>`),BAT_Q,350,right=>{
+  // the hint gets less trustworthy the rarer the enemy is
+  const fr=BAT_RARS[G.lvl+1], full=G.ehp>=BAT_HP[fr];
+  if(Math.random()<TELL_RIGHT[fr]) G.tell=G.foeMove;
+  else { let wrong=["P","R","D"].filter(k=>k!==G.foeMove&&!(k==="R"&&full));   // a wrong hint never says "tired" at full health
+    G.tell=wrong[rand(0,wrong.length-1)]; }
+  ask(arena(`<div class="tell">${esc(batFoe())} ${TELLS[G.tell]} <small class="muted">(hint is right ${Math.round(TELL_RIGHT[fr]*100)}% of the time)</small></div><div class="feedback small">⚔️ Answer before he strikes!</div>`),BAT_Q,350,right=>{
     if(!G||G.over) return; G.total++;
     if(right){ G.correct++; battlePickMove(); } else battleResolve("N");
   });
