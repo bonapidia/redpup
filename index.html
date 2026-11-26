@@ -332,6 +332,8 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   .cmbuy{font:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border:2px solid var(--line);border-radius:14px;background:#fff;cursor:pointer}
   .cmbuy b{font-size:13px}.cmbuy span{font-size:12px;font-weight:700;color:#b45309}
   .cmbuy.on{border-color:#22c55e;box-shadow:0 0 0 3px #bbf7d0}.cmbuy:disabled{opacity:.4;cursor:not-allowed}
+  body.reel #testbar,body.reel .testtag{display:none!important}
+  .reelpick{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:10px 0}.reelpick .btn{min-width:110px}
   .tabs{display:flex;background:var(--cream);border-radius:12px;padding:4px}
   .tabs button{flex:1;font:inherit;font-weight:600;border:none;background:none;padding:9px;border-radius:9px;cursor:pointer;color:#7a6a6c}
   .subtabs{max-width:460px;margin:0 auto 16px}
@@ -1244,7 +1246,7 @@ function redpupTest(){
     const bar=document.createElement("div"); bar.id="testbar";
     bar.innerHTML=`<b>🧪 TEST MODE</b> <span>nothing is saved</span>
       <button onclick="testView(true)">👩‍🏫 Teacher view</button><button onclick="testView(false)">🎒 Student view</button>
-      <button onclick="testGive()">➕ Refill Rooks & tokens</button><button onclick="exitTest()">✖ Exit</button>`;
+      <button onclick="testGive()">➕ Refill Rooks & tokens</button><button onclick="reelStart()">🎬 Reel mode</button><button onclick="exitTest()">✖ Exit</button>`;
     document.body.appendChild(bar);
   }
   testView(TEACHER);
@@ -2016,6 +2018,37 @@ function openBoxAnim(b,got,done){
   st(end-200,()=>{ const f=el("boxflash"); if(f) f.classList.add("on"); });
   st(end,fin);
 }
+// ---- 🎬 Reel mode (test mode only, nothing saved): you pick what box #13 gives you ----
+let REEL=null;
+const REEL_RARS=["Common","Uncommon","Rare","Epic","Legendary","Chroma","Unique"];
+function reelStart(){
+  if(!TEST) return;
+  showModal(`<h2>🎬 Reel mode</h2><p>Pick what <b>box #13</b> will give you. The 12 boxes before it will be lower rarities.</p>
+    <div class="reelpick">${REEL_RARS.map(r=>`<button class="btn rar ${r}" onclick="reelGo('${r}')">${r}</button>`).join("")}</div>
+    <p class="muted small">Your collection starts empty with 2,000 tokens so it looks real, and the test bar hides so it won't show in your video. Press <b>Esc</b> to stop. Nothing is saved.</p>`);
+}
+function reelScript(target){
+  const ti=REEL_RARS.indexOf(target), lower=REEL_RARS.slice(0,Math.max(1,Math.min(ti,5)));   // never a Chroma/Unique before #13
+  const w=[40,25,15,8,4].slice(0,lower.length), out=[];
+  for(let i=0;i<12;i++){ let r=Math.random()*w.reduce((a,b)=>a+b,0), k=0; while(r>=w[k]){ r-=w[k]; k++; } out.push(lower[k]); }
+  if(ti>=2) out[10]=lower[lower.length-1];                 // a near-miss right before the big one
+  if(target==="Common") out.fill("Common");
+  out.push(target); return out;
+}
+function reelGo(target){
+  REEL={n:0,target,script:reelScript(target)}; S.owned={}; S.tokens=2000; document.body.classList.add("reel");
+  document.getElementById("tok").textContent=S.tokens; renderUserChip(); go("market");
+  toast(`🎬 Reel mode: box #13 will be ${target==="Unique"?"a Unique":"a "+target}. Press Esc to stop.`);
+}
+function reelStop(){ if(!REEL) return; REEL=null; document.body.classList.remove("reel"); renderUserChip(); toast("🎬 Reel mode off"); }
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&REEL) reelStop(); });
+function reelRoll(b){
+  const rar=REEL.script[REEL.n++]; if(REEL.n>=REEL.script.length) REEL.done=true;
+  let pool=ROOKS.filter(r=>r[1]===rar&&(rar==="Chroma"?r[5]==="Any":rar==="Unique"?true:r[5]===b.name));
+  if(!pool.length) pool=ROOKS.filter(r=>r[1]===rar&&r[0]!=="THE ROOK");
+  if(!pool.length) return rollBox(b);
+  const fresh=pool.filter(r=>!S.owned[r[0]]); const pick=fresh.length?fresh:pool; return pick[rand(0,pick.length-1)][0];
+}
 function reveal(name,isNew,extraBtns){
   const rar=R[name][1];
   if(["Epic","Legendary","Chroma","Unique","Mystical"].includes(rar)||isNew) confetti();
@@ -2028,7 +2061,7 @@ function buy(i){
   if(!boxStatus(b).ok) return;
   if(S.tokens<price) return showModal(`<div style="font-size:60px">😢</div><h2>Not enough tokens</h2><p>Play games to earn more!</p><br><button class="btn red" onclick="go('play')">Play</button>`);
   S.tokens-=price;
-  const got=rollBox(b), isNew=!S.owned[got];
+  const got=REEL&&!REEL.done?reelRoll(b):rollBox(b), isNew=!S.owned[got];
   S.owned[got]=(S.owned[got]||0)+1; addStat("boxes"); save();
   openBoxAnim(b,got,()=>reveal(got,isNew,`<button class="btn red" onclick="buy(${i})">Open another (🪙${price})</button>`));
 }
@@ -2648,7 +2681,7 @@ function checkAch(quiet){
 }
 const titleTag=t=>t?`<span class="ttl">${esc(t)}</span>`:"";
 function renderUserChip(){
-  userchip.innerHTML=`<button class="acct" onclick="accountModal()" title="My account">👤 ${esc(NAME())}</button>${S.title?titleTag(S.title):""}${TEACHER?' <span class="badge">TEACHER</span>':""}${ADMIN?' <span class="badge" style="background:#c084fc">ADMIN</span>':""}${TEST?' <span class="badge" style="background:#93c5fd">TEST</span>':""} <button onclick="${TEST?"exitTest()":"logout()"}">${TEST?"Exit test":"Log out"}</button>`;
+  userchip.innerHTML=`<button class="acct" onclick="accountModal()" title="My account">👤 ${esc(NAME())}</button>${S.title?titleTag(S.title):""}${TEACHER?' <span class="badge">TEACHER</span>':""}${ADMIN?' <span class="badge" style="background:#c084fc">ADMIN</span>':""}${TEST&&!REEL?' <span class="badge" style="background:#93c5fd">TEST</span>':""} <button onclick="${TEST?"exitTest()":"logout()"}">${TEST&&!REEL?"Exit test":"Log out"}</button>`;
 }
 function setTitle(t){ S.title=t||""; save(); renderUserChip(); hall("ach"); toast(t?`Title set: ${t}`:"Title removed"); }
 
