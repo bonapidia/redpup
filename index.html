@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#e63940">
 <title>RedPup — Free Classroom Quiz Game | Outsmart, Outplay, Outscore</title>
 <meta name="description" content="RedPup is a free quiz game for classrooms. Answer questions, earn tokens, open boxes and collect Rooks. Teachers host live games with a code, and students join from any device.">
 <link rel="canonical" href="https://redpup.org/">
@@ -53,16 +55,16 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   .user{color:#fff;font-weight:600;display:flex;align-items:center;gap:6px;white-space:nowrap}
   header nav{flex:1;flex-wrap:nowrap}
   header nav button{font-size:14px;padding:6px 9px;white-space:nowrap}
-  @media(max-width:1100px){header nav{flex-wrap:wrap}}
+  @media(max-width:1100px){header{flex-wrap:wrap}header nav{flex-wrap:wrap;order:3;flex-basis:100%}}
   .tokens{white-space:nowrap}
   #testbar{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:35;background:#facc15;color:#2a1215;border:3px solid #2a1215;border-radius:14px;padding:8px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;box-shadow:0 6px 20px rgba(0,0,0,.3);font-size:14px;max-width:96vw}
   #testbar button{font:inherit;font-weight:600;border:2px solid #2a1215;background:#fff;border-radius:9px;padding:4px 9px;cursor:pointer}
   .sndbtn{background:none;border:none;font-size:22px;cursor:pointer;padding:2px 4px}
   .user button.acct{color:#fff;border:none;font-size:15px;font-weight:600;padding:3px 6px}
-  .user button.acct:hover{background:rgba(255,255,255,.12)}
+  @media(hover:hover){.user button.acct:hover{background:rgba(255,255,255,.12)}}
   .user button{font:inherit;font-size:13px;background:transparent;color:#ffb3b8;border:1px solid #ffb3b8;border-radius:8px;padding:3px 8px;cursor:pointer}
   nav button,.btn{font-family:inherit;font-size:17px;font-weight:600;border:2px solid var(--red);border-radius:12px;padding:9px 16px;cursor:pointer;background:#fff;color:var(--red);box-shadow:0 4px 0 var(--dark);transition:transform .1s,box-shadow .1s}
-  nav button:hover,.btn:hover{transform:translateY(-2px);box-shadow:0 6px 0 var(--dark)}
+  @media(hover:hover){nav button:hover,.btn:hover{transform:translateY(-2px);box-shadow:0 6px 0 var(--dark)}}
   nav button:active,.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--dark)}
   .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
   .btn.big{font-size:22px;padding:14px 28px}
@@ -88,7 +90,7 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   .hero p{font-size:20px;margin:8px 0 22px}
   .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:26px}
   .tile{border-radius:18px;padding:18px;color:#fff;text-align:left;cursor:pointer;box-shadow:0 6px 0 rgba(0,0,0,.18);transition:transform .15s}
-  .tile:hover{transform:translateY(-4px) rotate(-1deg)}
+  @media(hover:hover){.tile:hover{transform:translateY(-4px) rotate(-1deg)}}
   .tile b{font-size:20px;display:block}.tile span{font-size:34px}
 
   /* play / sets */
@@ -96,14 +98,14 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   .playtop input{max-width:340px}
   .chips{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
   .chip{font:inherit;font-weight:600;border:2px solid var(--c);color:var(--c);background:#fff;border-radius:999px;padding:6px 14px;cursor:pointer;transition:all .15s}
-  .chip.on,.chip:hover{background:var(--c);color:#fff}
+  @media(hover:hover){.chip.on,.chip:hover{background:var(--c);color:#fff}}
   .sets{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
   .setcard{background:#fff;border:2px solid var(--line);border-left:8px solid var(--c);border-radius:16px;padding:14px;display:flex;gap:12px;align-items:center;cursor:pointer;transition:transform .15s,box-shadow .15s}
-  .setcard:hover{transform:translateY(-3px);box-shadow:0 8px 0 rgba(42,18,21,.08)}
+  @media(hover:hover){.setcard:hover{transform:translateY(-3px);box-shadow:0 8px 0 rgba(42,18,21,.08)}}
   .semoji{font-size:34px;width:54px;height:54px;border-radius:14px;background:var(--c);display:flex;align-items:center;justify-content:center}
   .modes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
   .mode{font:inherit;text-align:left;border:2px solid var(--line);background:var(--cream);border-radius:14px;padding:12px;cursor:pointer;display:grid;gap:2px;transition:transform .12s,border-color .12s}
-  .mode:hover{transform:scale(1.03);border-color:var(--red)}
+  @media(hover:hover){.mode:hover{transform:scale(1.03);border-color:var(--red)}}
   .mode span{font-size:28px}.mode small{color:#7a6a6c}
 
   /* game */
@@ -114,7 +116,7 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   .q{font-size:28px;font-weight:600;text-align:center;background:#fff;border:2px solid var(--line);border-radius:16px;padding:26px}
   .answers{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
   .ans{font-family:inherit;font-size:20px;font-weight:600;color:#fff;border:none;border-radius:14px;padding:22px 12px;cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.25);animation:rise .35s backwards;transition:transform .12s,opacity .2s}
-  .ans:hover{transform:translateY(-3px)}
+  @media(hover:hover){.ans:hover{transform:translateY(-3px)}}
   @keyframes rise{from{opacity:0;transform:translateY(16px)}}
   .ans:nth-child(1){background:#ffb703}.ans:nth-child(2){background:#219ebc}.ans:nth-child(3){background:#2a9d8f}.ans:nth-child(4){background:#e76f51}
   .ans.right{background:#22c55e!important;transform:scale(1.05)}
@@ -123,7 +125,7 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   .chests{display:flex;gap:16px;justify-content:center;margin-top:20px}
   .chest{font-size:76px;cursor:pointer;background:#fff;border:2px solid var(--line);border-radius:18px;padding:14px 24px;box-shadow:0 6px 0 var(--dark);transition:transform .15s;animation:pop .4s backwards}
   .chest:nth-child(2){animation-delay:.08s}.chest:nth-child(3){animation-delay:.16s}
-  .chest:hover{transform:scale(1.1) rotate(-4deg)}
+  @media(hover:hover){.chest:hover{transform:scale(1.1) rotate(-4deg)}}
   .feedback{font-size:38px;font-weight:700;text-align:center;color:var(--red);margin:18px 0}
   .track{display:grid;gap:8px;margin-bottom:14px}
   .lane{position:relative;height:54px;background:repeating-linear-gradient(90deg,#fff 0 30px,#fff7ef 30px 60px);border:2px solid var(--line);border-radius:12px;overflow:hidden}
@@ -142,7 +144,7 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   .special h2{margin:0}
   .boxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
   .box{position:relative;border-radius:18px;padding:18px;text-align:center;color:#fff;box-shadow:0 6px 0 rgba(0,0,0,.2);transition:transform .15s}
-  .box:hover{transform:translateY(-4px)}
+  @media(hover:hover){.box:hover{transform:translateY(-4px)}}
   .box.soon{filter:grayscale(.6);opacity:.8}
   .box .ic{font-size:56px}
   .box .minis{display:flex;justify-content:center;flex-wrap:wrap;margin:6px 0 10px}
@@ -154,7 +156,7 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   /* rooks */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin-bottom:22px}
   .rook{background:var(--cream);border-radius:16px;padding:8px;text-align:center;cursor:pointer;border:3px solid transparent;position:relative;transition:transform .15s}
-  .rook:hover{transform:translateY(-3px)}
+  @media(hover:hover){.rook:hover{transform:translateY(-3px)}}
   .rook.locked{cursor:default}.rook.locked svg{filter:brightness(0) opacity(.18)}
   .rook.equipped{border-color:var(--gold)}
   .rook .name{font-weight:600;font-size:14px}
@@ -233,7 +235,7 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   .sugg{position:absolute;left:0;right:0;top:100%;background:#fff;border:2px solid var(--line);border-radius:10px;z-index:4;box-shadow:0 8px 20px rgba(0,0,0,.1);overflow:hidden}
   .sugg:empty{display:none}
   .sugg div{padding:8px 12px;cursor:pointer;display:flex;justify-content:space-between;color:var(--ink);font-size:15px}
-  .sugg div:hover{background:var(--cream)}
+  @media(hover:hover){.sugg div:hover{background:var(--cream)}}
   .prefs{background:var(--cream);border-radius:14px;padding:14px;margin-top:18px;display:grid;gap:8px}
   .prefs .opts{display:flex;gap:16px;flex-wrap:wrap}.prefs label{display:flex;gap:6px;align-items:center;font-weight:600}
   .prefs input[type=radio]{width:auto}
@@ -334,6 +336,15 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   .cmbuy.on{border-color:#22c55e;box-shadow:0 0 0 3px #bbf7d0}.cmbuy:disabled{opacity:.4;cursor:not-allowed}
   body.reel #testbar,body.reel .testtag{display:none!important}
   .reelpick{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:10px 0}.reelpick .btn{min-width:110px}
+  /* ---- touch screens (iPad / phones) ---- */
+  html{touch-action:manipulation;-webkit-text-size-adjust:100%}
+  body{min-height:100dvh}
+  button,.btn,.ans,.chest,.box,.rook,.tile,.mode,.setcard,.cmboard,.cmbuy,.mvbtn,.boxopen,nav,.chip{-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+  svg,img,.cmboard,.boxopen,.rook,.reveal{-webkit-touch-callout:none}
+  @media(pointer:coarse){
+    input:not(#jc):not(#gc_in),select,textarea{font-size:16px!important}  /* stops iPad from zooming into text boxes */
+    .btn,nav button,.ans{min-height:44px}
+  }
   .tabs{display:flex;background:var(--cream);border-radius:12px;padding:4px}
   .tabs button{flex:1;font:inherit;font-weight:600;border:none;background:none;padding:9px;border-radius:9px;cursor:pointer;color:#7a6a6c}
   .subtabs{max-width:460px;margin:0 auto 16px}
@@ -365,7 +376,7 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   .news{background:var(--cream);border-radius:14px;padding:12px 14px;margin-top:10px}.news p{margin-top:6px}
   .poll{display:grid;gap:6px;margin-top:10px}
   .popt{position:relative;overflow:hidden;font:inherit;font-weight:600;text-align:left;border:2px solid var(--red);background:#fff;color:var(--ink);border-radius:12px;padding:10px 12px;cursor:pointer;display:flex;justify-content:space-between;gap:10px;transition:transform .1s}
-  .popt:hover:not(:disabled){transform:translateY(-2px)}
+  @media(hover:hover){.popt:hover:not(:disabled){transform:translateY(-2px)}}
   .popt.res{border-color:var(--line)}.popt.res.mine{border-color:var(--red)}
   .popt:disabled{cursor:default}
   .popt .pbar{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#ffd6d9,#ffe9b8);transition:width .6s;z-index:0}
@@ -397,6 +408,11 @@ window.RESET_URL = "https://redpup-reset.neilboyapati.workers.dev/";
   @media(max-width:700px){
     header{flex-direction:column;gap:8px;position:static}.answers,.modes{grid-template-columns:1fr}
     .tform{grid-template-columns:1fr}.q{font-size:22px}
+    /* phones: one swipeable row of menu buttons instead of two rows */
+    header{padding:8px 10px;gap:6px}.logo img{height:34px}
+    header nav{flex-wrap:nowrap!important;justify-content:flex-start;overflow-x:auto;width:100%;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+    header nav::-webkit-scrollbar{display:none}
+    header nav button{flex:0 0 auto}
   }
 </style>
 </head>
@@ -424,10 +440,11 @@ if (window.FB) {
 } else {
   try {
     const V = "10.12.2", base = `https://www.gstatic.com/firebasejs/${V}/`;
-    const { initializeApp } = await import(base + "firebase-app.js");
-    const A = await import(base + "firebase-auth.js");
-    const F = await import(base + "firebase-firestore.js");
-    const app = initializeApp(cfg), auth = A.getAuth(app), db = F.getFirestore(app);
+    // load the 3 Firebase parts at the same time (faster start)
+    const [{ initializeApp }, A, F] = await Promise.all([import(base + "firebase-app.js"), import(base + "firebase-auth.js"), import(base + "firebase-firestore.js")]);
+    const app = initializeApp(cfg), auth = A.getAuth(app);
+    // long-polling works through school web filters / iPad networks that stall Firebase's normal streaming connection
+    let db; try { db = F.initializeFirestore(app, { experimentalForceLongPolling: true }); } catch (e) { db = F.getFirestore(app); }
     const email = n => n.toLowerCase() + "@redpup.game";
     const userDoc = uid => F.doc(db, "users", uid);
     window.FB = {
@@ -788,23 +805,30 @@ function save(){
   if(MODE==="guest"){ try{localStorage.setItem("redpup_guest",JSON.stringify(S));}catch(e){} }
   else if(MODE==="fb"&&LOADED){ checkAch(); backup(true); clearTimeout(saveT); saveT=setTimeout(writeNow,800); }
 }
+let LOADN=0;
 function boot(){ if(booted) return; booted=true;
   if(window.FB && !FB_OFF){
     FB.onAuth(async u=>{
       if(SIGNING_UP) return;
       if(u){ UID=u.uid; LOADED=false; MODE="fb";
         app.innerHTML=`<div class="loading">Loading your Rooks… 🐶</div>`;
+        const myLoad=++LOADN;
+        setTimeout(()=>{ const l=document.querySelector(".loading"); if(l&&LOADN===myLoad&&!LOADED&&!l.querySelector("button"))
+          l.innerHTML+=`<p class="small muted" style="margin-top:14px">Taking longer than usual… the internet might be slow.</p><button class="btn red" onclick="location.reload()">🔄 Try again</button>`; },12000);
         let d=null, ok=false;
-        for(let i=0;i<5&&!ok;i++){ try{ d=await FB.getUser(UID); ok=true; }catch(e){ await new Promise(r=>setTimeout(r,800*(i+1))); } }
+        const TIMEOUT={};
+        for(let i=0;i<5&&!ok;i++){ const r=await within(FB.getUser(UID).then(v=>({v}),()=>TIMEOUT),6000,TIMEOUT);
+          if(r!==TIMEOUT){ d=r.v; ok=true; } else await new Promise(r=>setTimeout(r,600*(i+1))); }
         if(!ok) return loadError();
-        let banned=false; try{ banned=await FB.isBanned(UID); }catch(e){}
+        if(LOADN!==myLoad) return;                                   // a newer sign-in took over
+        const banned=await within(FB.isBanned(UID),5000,false);
         if(banned) return bannedScreen();
         const bk=readBackup(); let needSave=false;
         if(!d&&bk&&bk.s){ d=bk.s; needSave=true; }                                   // remote missing -> restore this device's copy
         else if(d&&bk&&bk.s&&bk.dirty&&(bk.s.rev||0)===(d.rev||0)){ d=bk.s; needSave=true; } // unsaved changes from last visit
         S=normalize(d); if(!S.name) S.name=u.emailName||"Player";
         LOADED=true;
-        if(needSave||!S.rev) await writeNow();
+        if(needSave||!S.rev) await within(writeNow(),8000);
         startUserWatch();
         FB.ensureUsername(UID,S.name).catch(()=>{});
         await afterLogin(); settleTrades(true); offerGuestMerge(); checkTestLink(); }
@@ -1038,12 +1062,17 @@ function renderNav(){
     `<button data-g="create" onclick="go('create')">✏️ Create</button><button data-g="rooks" onclick="go('rooks')">🏰 Rooks</button><button data-g="trade" onclick="go('trade')">🔁 Trade</button><button data-g="hall" onclick="go('hall')">🏆 Hall</button>`+
     (ADMIN?`<button onclick="go('admin')">🛡️ Admin</button>`:"");
 }
+// never wait forever on the network: give up after ms and use the fallback
+const within=(p,ms,fallback)=>Promise.race([Promise.resolve(p).catch(()=>fallback),new Promise(r=>setTimeout(()=>r(fallback),ms))]);
 async function afterLogin(){
   { const b=document.getElementById("snd"); if(b) b.textContent=Music.muted?"🔇":"🔊"; }
-  try{ TEACHER=await FB.isTeacher(UID); }catch(e){ TEACHER=false; }
-  try{ ADMIN=await FB.isAdmin(UID); }catch(e){ ADMIN=false; }
-  try{ SPECIAL=await FB.getTitles(NAME()); }catch(e){ SPECIAL=[]; }
-  await Promise.all([syncClock(),loadSchedule()]); startScheduleWatch();
+  const SLOW="slow";
+  const [t,a,sp]=await Promise.all([within(FB.isTeacher(UID),4000,SLOW),within(FB.isAdmin(UID),4000,SLOW),within(FB.getTitles(NAME()),4000,[]),within(syncClock(),3000),within(loadSchedule(),4000)]);
+  TEACHER=t===true; ADMIN=a===true; SPECIAL=Array.isArray(sp)?sp:[];
+  // if the teacher/admin check was too slow, keep trying quietly and update the menu when it answers
+  if(t===SLOW) FB.isTeacher(UID).then(v=>{ if(v&&UID){ TEACHER=true; ACCESS=null; renderNav(); } }).catch(()=>{});
+  if(a===SLOW) FB.isAdmin(UID).then(v=>{ if(v&&UID){ ADMIN=true; renderNav(); } }).catch(()=>{});
+  startScheduleWatch();
   document.body.classList.remove("out");
   try{localStorage.removeItem("redpup_mode")}catch(e){}
   renderNav(); renderUserChip();
@@ -1271,7 +1300,7 @@ function toggleSound(){ const m=Music.toggle(); const b=document.getElementById(
 // ====================================================================
 const app=document.getElementById("app");
 // Combined tabs: Rooks = My Rooks + Market, Play = Join + Solo
-function navOn(g){ document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.g===g)); }
+function navOn(g){ document.querySelectorAll("#nav button").forEach(b=>{ b.classList.toggle("on",b.dataset.g===g); if(b.dataset.g===g&&innerWidth<=700){ const n=b.parentElement; n.scrollTo({left:b.offsetLeft-n.clientWidth/2+b.clientWidth/2,behavior:"smooth"}); } }); }
 function subTabs(group,cur){
   const T=group==="rooks"?[["rooks","🏰 My Rooks"],["market","🛒 Market"]]:accessMode()==="all"?[["join","🔑 Join a Game"],["play","▶ Solo"]]:[];
   if(!T.length) return navOn(group);
@@ -2202,9 +2231,13 @@ function lastStand(allNames){
       // secret glow code: 2 quick "start" flashes, then 32 bright/dim beats unique to this account
       (async()=>{ const g=$("glowfp"), pat=glowPattern(UID||"guest");
         const set=v=>{ if(!skipped) g.style.opacity=v; };
-        await wait(400); for(let k=0;k<2;k++){ set(1); await wait(160); set(0); await wait(160); }
-        await wait(500);
-        for(const bit of pat){ if(skipped) return; set(bit?1:.18); await wait(300); set(0); await wait(100); }
+        await wait(400);
+        while(!skipped&&document.getElementById("glowfp")===g){          // repeats the whole cutscene, so even a trimmed clip has it
+          for(let k=0;k<2;k++){ set(1); await wait(160); set(0); await wait(160); }
+          await wait(500);
+          for(const bit of pat){ if(skipped) return; set(bit?1:.18); await wait(300); set(0); await wait(100); }
+          await wait(900);
+        }
         set(0); })();
       const song=await Music.cine("build");
       if(!song) Music.play("battle");                 // no song? use the synth soundtrack
@@ -4230,6 +4263,9 @@ async function loadGifts(){
 async function toggleGift(code,on){ try{ await FB.giftSetOn(code,on); if(GIFTCACHE[code]) GIFTCACHE[code].on=on; loadGifts(); }catch(e){ toast("Couldn't change it."); } }
 
 // ---------- the poster (drawn on a canvas, 1200 × 1700) ----------
+if(window.CanvasRenderingContext2D&&!CanvasRenderingContext2D.prototype.roundRect){   // older iPads
+  CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){ r=Math.min(r,w/2,h/2); this.moveTo(x+r,y); this.arcTo(x+w,y,x+w,y+h,r); this.arcTo(x+w,y+h,x,y+h,r); this.arcTo(x,y+h,x,y,r); this.arcTo(x,y,x+w,y,r); this.closePath(); return this; };
+}
 function svgImg(svg){
   if(!/xmlns=/.test(svg)) svg=svg.replace("<svg",'<svg xmlns="http://www.w3.org/2000/svg"');
   return new Promise(res=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=()=>res(null); i.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg); });
@@ -4310,8 +4346,12 @@ function admin(){
       <p class="small muted">The bottom-left corner of the cutscene shows a code like <b>RP-K3F9Q-7ZX2M</b>. Every account has its own.</p>
       <div class="tform" style="grid-template-columns:1fr auto"><input id="pc_in" placeholder="RP-XXXXX-XXXXX" maxlength="20" style="text-transform:uppercase"><button class="btn red small" onclick="findByCode()">Search</button></div>
       <div id="pc_out" class="small"></div></div>
+    <div class="prefs"><b>🎥 Find the leaker from a video</b>
+      <p class="small muted">Upload the leaked clip (a screen recording or a phone video of the screen). RedPup reads the purple glow pattern by itself and finds the account. Needs at least ~15 seconds of the cutscene.</p>
+      <input type="file" accept="video/*" onchange="glowFromVideo(this)">
+      <div id="gv_out" class="small"></div></div>
     <div class="prefs"><b>🟣 Find by the purple glow</b>
-      <p class="small muted">Right after the cutscene starts, the purple light behind the board flashes twice quickly (that's the start signal), then pulses 32 times. Each pulse is <b>bright</b> or <b>dim</b>, and every account's pattern is different. Tap each beat to match the video, then Search.</p>
+      <p class="small muted">The purple light behind the board flashes twice quickly (that's the start signal), then pulses 32 times. Each pulse is <b>bright</b> or <b>dim</b>, and every account's pattern is different. Tap each beat to match the video, then Search.</p>
       <div class="row" style="justify-content:flex-start;gap:4px" id="gl_beats">${Array.from({length:GLOW_BEATS},(_,i)=>`${i%8===0&&i?'<span style="width:100%"></span>':""}<button class="beat" data-b="1" onclick="this.dataset.b=this.dataset.b==='1'?'0':'1';this.textContent=(this.dataset.b==='1'?'☀️':'🌑')+' ${i+1}'">☀️ ${i+1}</button>`).join("")}</div>
       <div class="row" style="justify-content:flex-start"><button class="btn red small" onclick="findByGlow()">Search</button></div>
       <div id="gl_out" class="small"></div></div>
@@ -4386,6 +4426,84 @@ async function findByCode(){
   const norm=s=>s.replace(/[^A-Z0-9]/g,""), hits=ids.filter(p=>norm(playerCode(p.id))===norm(code));
   out.innerHTML=`<span class="muted">Checked all ${ids.length} accounts.</span><br>`+(hits.length?`🎯 <b>Match:</b> ${hits.map(p=>esc(p.name)).join(", ")}`:"No player has that code. Check for typos (0 vs O, 1 vs I).");
 }
+// ====================================================================
+//  🎥 FIND THE LEAKER FROM A VIDEO — reads the purple glow pattern out of a leaked clip.
+//  The cutscene repeats: 2 quick flashes (start signal) → wait → 32 pulses (bright = 1, dim = 0).
+//  Timing (seconds from the 1st flash): flashes at 0 and 0.32 (0.16 long), pulses start at 1.14, every 0.4 (0.3 long).
+// ====================================================================
+const GLOW_T={flash:.16,flashGap:.32,first:1.14,step:.4,on:.3};
+async function videoSeries(file,onProg){
+  const url=URL.createObjectURL(file), v=document.createElement("video");
+  v.muted=true; v.playsInline=true; v.src=url; v.preload="auto";
+  await new Promise((res,rej)=>{ v.onloadedmetadata=res; v.onerror=()=>rej(new Error("Can't open that video — try an .mp4 or .webm")); });
+  const W=96, H=Math.max(8,Math.round(W*(v.videoHeight||9)/(v.videoWidth||16)));
+  const cv=document.createElement("canvas"); cv.width=W; cv.height=H; const x=cv.getContext("2d",{willReadFrequently:true});
+  const ts=[], vs=[];
+  const grab=t=>{ x.drawImage(v,0,0,W,H); const d=x.getImageData(0,0,W,H).data; let s=0;
+    for(let i=0;i<d.length;i+=4){ const p=(d[i]+d[i+2])/2-d[i+1]; if(p>0) s+=p; } ts.push(t); vs.push(s/(W*H)); };
+  const dur=v.duration;
+  // step through the video 30 times per second (exact frames, nothing skipped)
+  for(let t=0;t<dur;t+=1/30){
+    await new Promise(r=>{ v.onseeked=r; v.currentTime=t; });
+    grab(t); if(ts.length%15===0){ onProg&&onProg(t/dur); await new Promise(r=>setTimeout(r,0)); }
+  }
+  URL.revokeObjectURL(url);
+  return {ts,vs};
+}
+function pct(a,p){ const s=[...a].sort((x,y)=>x-y); return s[Math.min(s.length-1,Math.max(0,Math.floor(p*(s.length-1))))]; }
+// Reads the pattern by its SHAPE, not exact timing (busy computers run the timers late):
+// [dark pause] → 2 bright flashes → [dark pause] → 32 pulses (bright = 1, dim = 0) separated by short dark gaps.
+function decodeGlow(ts,vs){
+  if(ts.length<30) return [];
+  const lo=pct(vs,.05), hi=pct(vs,.98), n=vs.map(v=>(v-lo)/Math.max(1e-6,hi-lo)), OFF=.08;
+  const groups=[]; let cur=[], offStart=null;
+  for(let i=0;i<n.length;i++){
+    if(n[i]<OFF){ if(offStart===null) offStart=i; if(ts[i]-ts[offStart]>=.25&&cur.length){ groups.push(cur); cur=[]; } }
+    else { offStart=null; cur.push(i); }
+  }
+  if(cur.length) groups.push(cur);
+  const mx=p=>Math.max(...p.map(i=>n[i]));
+  const pulses=idx=>{ const res=[]; let c=[idx[0]];
+    for(let k=1;k<idx.length;k++){ const i=idx[k];
+      if(i!==idx[k-1]+1){ res.push(c); c=[i]; continue; }
+      if(k<idx.length-1&&idx[k+1]===i+1){
+        const l=Math.max(...idx.slice(Math.max(0,k-6),k).map(j=>n[j])), r=Math.max(...idx.slice(k+1,k+7).map(j=>n[j]));
+        if(n[i]<=n[idx[k-1]]&&n[i]<=n[idx[k+1]]&&n[i]<.6*Math.min(l,r)){ res.push(c); c=[]; continue; } }
+      c.push(i); }
+    res.push(c); return res.filter(p=>p.length); };
+  const out=[];
+  for(let gi=0;gi<groups.length-1;gi++){
+    const f=pulses(groups[gi]).slice(-2), g=groups[gi+1], dur=ts[g[g.length-1]]-ts[g[0]];
+    if(f.length!==2||!f.every(p=>mx(p)>.5)||dur<9||dur>20) continue;
+    const b=pulses(g); let peaks;
+    if(b.length===32) peaks=b.map(p=>{ const v=p.map(i=>n[i]).sort((x,y)=>x-y); return p.length>2?v[Math.floor(v.length*2/3)]:Math.max(...v); });
+    else { const t0=ts[g[0]], sl=dur/32; peaks=Array.from({length:32},(_,k)=>{ const w=g.filter(i=>ts[i]>=t0+sl*(k+.25)&&ts[i]<=t0+sl*(k+.75)).map(i=>n[i]); return w.length?w.reduce((x,y)=>x+y)/w.length:0; }); }
+    let a=Math.min(...peaks), c=Math.max(...peaks);
+    for(let it=0;it<10;it++){ const A=peaks.filter(x=>Math.abs(x-a)<=Math.abs(x-c)), B=peaks.filter(x=>Math.abs(x-a)>Math.abs(x-c)); if(A.length) a=A.reduce((x,y)=>x+y)/A.length; if(B.length) c=B.reduce((x,y)=>x+y)/B.length; }
+    out.push({bits:peaks.map(x=>x>(a+c)/2?1:0),exact:b.length===32});
+  }
+  return out;
+}
+async function glowFromVideo(inp){
+  const f=inp.files&&inp.files[0], out=document.getElementById("gv_out"); if(!f) return;
+  out.innerHTML=`<p>🎥 Reading the video… <span id="gv_p">0%</span> <span class="muted small">(this can take a minute)</span></p>`;
+  let ser; try{ ser=await videoSeries(f,p=>{ const e=document.getElementById("gv_p"); if(e) e.textContent=Math.min(100,Math.round(p*100))+"%"; }); }
+  catch(e){ return out.innerHTML=`<p class="err">${esc(e.message||"Couldn't read that video.")}</p>`; }
+  const reads=decodeGlow(ser.ts,ser.vs);
+  if(!reads.length) return out.innerHTML=`<p class="err">Couldn't find the glow pattern. The clip needs at least ~15 seconds of the cutscene with the purple light visible.</p>`;
+  out.innerHTML=`<p>Found the pattern ${reads.length} time${reads.length>1?"s":""} — checking every player…</p>`;
+  let ids=[]; try{ ids=await FB.allPlayers(); }catch(e){ return out.innerHTML=`<p class="err">Couldn't load players.</p>`; }
+  // vote across every copy of the pattern in the clip, then compare to every account
+  const vote=Array.from({length:32},(_,k)=>reads.reduce((s,r)=>s+r.bits[k],0)/reads.length), bits=vote.map(v=>v>=.5?1:0);
+  const ranked=ids.map(p=>({...p,d:glowPattern(p.id).reduce((s,b,i)=>s+(b!==bits[i]),0)})).sort((a,b)=>a.d-b.d).slice(0,3);
+  const best=ranked[0];
+  const row=p=>`<div class="trow"><span>${p.d===0?"🎯":"🤔"} <b>${esc(p.name)}</b> <span class="muted small">${p.d===0?"exact match":p.d+" of 32 pulses different"}</span></span>
+    <button class="btn small red" onclick="banUser('${p.id}','${esc(p.name).replace(/'/g,"")}','Leaked the cutscene (video glow match)')">🚫 Ban</button></div>`;
+  out.innerHTML=`<p class="small muted">Pattern read from video: <span style="font-family:monospace">${bits.map(b=>b?"☀️":"🌑").join("")}</span> · checked ${ids.length} accounts</p>
+    ${best&&best.d<=2?row(best)+(ranked.slice(1).filter(p=>p.d<=2).map(row).join("")):`<p>No account matches closely. Closest:</p>${ranked.map(row).join("")}`}
+    ${best&&best.d>0&&best.d<=2?`<p class="small muted">Not exact (a blurry or low-quality video can flip a pulse). Double-check with the corner code or Rook order before banning.</p>`:""}`;
+}
+
 async function findByGlow(){
   const pat=[...document.querySelectorAll("#gl_beats .beat")].map(b=>+b.dataset.b), out=document.getElementById("gl_out");
   out.textContent="Searching every player…";
